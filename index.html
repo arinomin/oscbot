@@ -1,16 +1,164 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>replit</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOBILE OSC BOT</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-  Hello world
-  <script src="script.js"></script>
-</body>
+    <div class="sequencer-app">
+        <header>
+            <h1>MOBILE OSC BOT</h1>
+        </header>
 
+        <div class="playback-grid-area">
+            <div class="playback-grid" id="playback-grid">
+            </div>
+        </div>
+
+        <div class="playback-controls-immediate">
+            <button id="play-once-button">一周だけ再生</button>
+            <button id="play-loop-button">繰り返し再生</button>
+            <button id="stop-button" class="stop-button">停止</button>
+        </div>
+
+        <div class="global-settings-area">
+            <div class="settings-row">
+                <div class="control-group bpm-control-group">
+                    <label for="bpm">BPM:</label>
+                    <div class="bpm-input-wrapper">
+                        <button type="button" class="bpm-adjust" data-step="-10">-10</button>
+                        <button type="button" class="bpm-adjust" data-step="-1">-</button>
+                        <input type="number" id="bpm" value="120" min="20" max="300">
+                        <button type="button" class="bpm-adjust" data-step="1">+</button>
+                        <button type="button" class="bpm-adjust" data-step="10">+10</button>
+                    </div>
+                </div>
+                <div class="control-group button-based-control">
+                    <label>音価:</label>
+                    <div id="note-duration-buttons" class="settings-button-group">
+                    </div>
+                </div>
+            </div>
+            <div class="settings-row">
+                <div class="control-group button-based-control">
+                    <label>シーケンスMAX (ステップ数):</label>
+                    <div id="sequence-max-buttons" class="settings-button-group sequence-max-buttons">
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <label for="bulk-edit-button">編集ツール:</label>
+                    <button id="bulk-edit-button">一斉変更</button>
+                </div>
+            </div>
+            <div class="settings-row">
+                <div class="control-group full-width-control">
+                    <label for="random-generate-trigger-button">メロディー生成:</label>
+                    <button id="random-generate-trigger-button">ランダム生成...</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Developed by arinomi (<a href="https://twitter.com/arinomi_loop" target="_blank" rel="noopener noreferrer">@arinomi_loop</a>)</p>
+            <p><a href="https://arinomi.replit.app/" target="_blank" rel="noopener noreferrer">その他のルーパー向けアプリはこちら</a></p>
+        </footer>
+
+    </div>
+
+    <div id="edit-modal" class="modal">
+         <div class="modal-content">
+            <span class="close-button">×</span>
+            <h3 id="modal-title">ステップ編集</h3>
+            <div class="modal-controls">
+                <div class="button-group-container">
+                    <label>音階:</label>
+                    <div id="modal-note-buttons" class="button-selector-group note-buttons"></div>
+                </div>
+                <div class="button-group-container">
+                    <label>オクターブ (1-9):</label>
+                    <div id="modal-octave-buttons" class="button-selector-group octave-buttons"></div>
+                </div>
+                <div class="button-group-container">
+                    <label>波形:</label>
+                    <div id="modal-waveform-buttons" class="button-selector-group waveform-buttons"></div>
+                </div>
+                <div>
+                    <label for="modal-volume">音量:</label>
+                    <input type="range" id="modal-volume" min="0" max="100" value="50">
+                    <span id="modal-volume-display">50%</span>
+                </div>
+                <button id="modal-play-test-button">▶ この音を試聴</button>
+                <button id="modal-complete-button" class="modal-main-action-button">完了</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bulk-edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h3>一斉変更</h3>
+            <div class="modal-controls">
+                <div class="button-group-container">
+                    <label>音階を一括変更:</label>
+                    <div id="bulk-modal-note-buttons" class="button-selector-group note-buttons"></div>
+                </div>
+                <div class="button-group-container">
+                    <label>オクターブを一括変更:</label>
+                    <div id="bulk-modal-octave-buttons" class="button-selector-group octave-buttons"></div>
+                </div>
+                <div class="button-group-container">
+                    <label>波形を一括変更:</label>
+                    <div id="bulk-modal-waveform-buttons" class="button-selector-group waveform-buttons"></div>
+                </div>
+                <div class="volume-control-container">
+                    <label for="bulk-modal-volume">音量を一括変更:</label>
+                    <div class="volume-slider-wrapper">
+                        <input type="range" id="bulk-modal-volume" min="0" max="100" value="50">
+                        <span id="bulk-modal-volume-display">50%</span>
+                    </div>
+                    <button type="button" id="bulk-clear-volume-button" class="clear-selection-button">音量変更をクリア</button>
+                </div>
+                <button id="bulk-modal-apply-button" class="modal-main-action-button">適用して完了</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="random-generate-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h3>ランダムメロディー生成</h3>
+            <div class="modal-controls">
+                <div class="button-group-container">
+                    <label>ルート音:</label>
+                    <div id="rg-root-note-buttons" class="button-selector-group note-buttons">
+                    </div>
+                </div>
+                <div>
+                    <label for="rg-chord-type">コードタイプ:</label>
+                    <select id="rg-chord-type"></select>
+                </div>
+                <div class="button-group-container">
+                    <label>使用オクターブ (最小):</label>
+                    <div id="rg-octave-min-buttons" class="button-selector-group octave-buttons">
+                    </div>
+                </div>
+                <div class="button-group-container">
+                    <label>使用オクターブ (最大):</label>
+                    <div id="rg-octave-max-buttons" class="button-selector-group octave-buttons">
+                    </div>
+                </div>
+                <div class="button-group-container">
+                    <label>適用ステップ数:</label>
+                    <div id="rg-steps-buttons" class="button-selector-group sequence-max-buttons">
+                    </div>
+                </div>
+                <button id="rg-execute-button" class="modal-main-action-button">生成実行</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
