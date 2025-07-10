@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOBILE OSC BOT</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1abc9c">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,27 +17,38 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.jpg">
     <link rel="apple-touch-icon" sizes="384x384" href="icons/icon-384x384.jpg">
     <link rel="apple-touch-icon" href="icons/icon-192x192.jpg">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
     <div class="sequencer-app">
-        <header>
+        <header class="app-header">
             <h1>MOBILE OSC BOT</h1>
+            <div class="auth-section">
+                <div id="user-info" style="display: none;">
+                    <span id="user-name"></span>
+                    <button id="logout-button"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+                <button id="login-button">Googleでログイン</button>
+            </div>
         </header>
 
-        <div class="playback-grid-area">
-            <div class="playback-grid" id="playback-grid">
+        <main class="main-content">
+            <div class="playback-grid-area">
+                <div class="playback-grid" id="playback-grid">
+                </div>
             </div>
-        </div>
 
-        <div class="playback-controls-immediate">
-            <button id="play-once-button">一周だけ再生</button>
-            <button id="play-loop-button">繰り返し再生</button>
-            <button id="stop-button" class="stop-button">停止</button>
-        </div>
+            <div class="controls-area">
+                <div class="control-group playback-controls-immediate">
+                    <button id="play-once-button">一周だけ再生</button>
+                    <button id="play-loop-button">繰り返し再生</button>
+                    <button id="stop-button" class="stop-button">停止</button>
+                </div>
 
-        <div class="global-settings-area">
-            <div class="settings-row">
                 <div class="control-group bpm-control-group">
                     <label for="bpm">BPM:</label>
                     <div class="bpm-input-wrapper">
@@ -52,30 +64,38 @@
                     <div id="note-duration-buttons" class="settings-button-group">
                     </div>
                 </div>
-            </div>
-            <div class="settings-row">
                 <div class="control-group button-based-control">
                     <label>シーケンスMAX (ステップ数):</label>
                     <div id="sequence-max-buttons" class="settings-button-group sequence-max-buttons">
                     </div>
                 </div>
-                <div class="control-group">
-                    <label for="bulk-edit-button">編集ツール:</label>
-                    <button id="bulk-edit-button">一斉変更</button>
-                </div>
             </div>
-            <div class="settings-row">
-                <div class="control-group full-width-control">
-                    <label for="random-generate-trigger-button">メロディー生成:</label>
-                    <button id="random-generate-trigger-button">ランダム生成...</button>
-                </div>
-            </div>
-        </div>
+        </main>
 
-        <footer>
-            <p>Developed by arinomi (<a href="https://twitter.com/arinomi_loop" target="_blank"
+        <footer class="app-footer">
+            <div class="footer-toolbar">
+                <button id="random-generate-trigger-button" class="toolbar-button">
+                    <span class="icon-placeholder">🎲</span>
+                    <span>ランダム</span>
+                </button>
+                <button id="bulk-edit-button" class="toolbar-button">
+                    <span class="icon-placeholder">🎨</span>
+                    <span>一斉変更</span>
+                </button>
+                <button id="save-data-button" class="toolbar-button">
+                    <span class="icon-placeholder">💾</span>
+                    <span>保存</span>
+                </button>
+                <button id="load-data-button" class="toolbar-button">
+                    <span class="icon-placeholder">📂</span>
+                    <span>読込</span>
+                </button>
+            </div>
+            <div class="footer-credits">
+                 <p>Developed by arinomi (<a href="https://twitter.com/arinomi_loop" target="_blank"
                     rel="noopener noreferrer">@arinomi_loop</a>)</p>
-            <p><a href="https://arinomi.replit.app/" target="_blank" rel="noopener noreferrer">その他のルーパー支援アプリはこちら</a></p>
+                 <p><a href="https://arinomi.replit.app/" target="_blank" rel="noopener noreferrer">その他のルーパー支援アプリはこちら</a></p>
+            </div>
         </footer>
 
     </div>
@@ -171,6 +191,47 @@
             </div>
         </div>
     </div>
+
+    <div id="save-preset-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h3>プリセット保存</h3>
+            <div class="modal-controls">
+                <div>
+                    <label for="preset-name">プリセット名 (必須):</label>
+                    <input type="text" id="preset-name" required>
+                </div>
+                <div>
+                    <label for="preset-description">説明 (任意):</label>
+                    <textarea id="preset-description" rows="3"></textarea>
+                </div>
+                <div>
+                    <label for="preset-tags">タグ (カンマ区切り):</label>
+                    <input type="text" id="preset-tags">
+                </div>
+                <button id="save-preset-button" class="modal-main-action-button">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="load-preset-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h3>プリセット読込</h3>
+            <div class="preset-list-controls">
+                <input type="search" id="search-box" placeholder="検索...">
+                <div id="tag-filter-container"></div>
+            </div>
+            <div class="modal-body">
+                <ul id="preset-list" class="preset-list">
+                    <!-- Presets will be loaded here -->
+                </ul>
+                <p id="no-results-message" style="display: none;">該当するプリセットがありません。</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
 
     <script src="script.js"></script>
     <!-- Google tag (gtag.js) -->
