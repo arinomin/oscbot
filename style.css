@@ -81,7 +81,6 @@ header {
   padding: 15px;
   background-color: rgba(0,0,0,0.1);
   border-radius: 8px;
-  /* margin-top: auto; -- Removed to allow footer to push it up */
 }
 .settings-row {
   display: flex;
@@ -124,6 +123,7 @@ header {
   border: 1px solid var(--border-color);
   background-color: var(--primary-bg);
   color: var(--text-color);
+  -moz-appearance: textfield;
 }
 .bpm-input-wrapper input[type="number"]#bpm::-webkit-outer-spin-button,
 .bpm-input-wrapper input[type="number"]#bpm::-webkit-inner-spin-button {
@@ -466,42 +466,29 @@ header {
 }
 
 footer {
-  margin-top: 30px; 
+  margin-top: 30px;
   padding: 15px 0;
   text-align: center;
   font-size: 0.8em;
   color: rgba(236, 240, 241, 0.7);
   border-top: 1px solid var(--border-color);
 }
-
-footer p {
-  margin: 5px 0;
-}
-
+footer p { margin: 5px 0; }
 footer a {
   color: var(--accent-color);
   text-decoration: none;
   font-weight: bold;
 }
-
 footer a:hover {
   text-decoration: underline;
   color: var(--accent-hover);
 }
-
-@media (max-width: 360px) {
-  footer {
-      font-size: 0.75em;
-  }
-}
-
 
 @media (max-width: 600px) {
   .playback-controls-immediate { flex-direction: column; }
   .settings-row { flex-direction: column; align-items: stretch; }
   .global-settings-area .control-group { min-width: 0; }
 
-  .bpm-input-wrapper {}
   .bpm-adjust {
       min-width: 32px;
       height: 30px;

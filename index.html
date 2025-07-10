@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,8 +11,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="OSC BOT">
-    <link rel="apple-touch-icon" href="images/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.jpg">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192x192.jpg">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.jpg">
+    <link rel="apple-touch-icon" sizes="384x384" href="icons/icon-384x384.jpg">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.jpg">
 </head>
+
 <body>
     <div class="sequencer-app">
         <header>
@@ -53,7 +59,7 @@
                     <div id="sequence-max-buttons" class="settings-button-group sequence-max-buttons">
                     </div>
                 </div>
-                 <div class="control-group">
+                <div class="control-group">
                     <label for="bulk-edit-button">編集ツール:</label>
                     <button id="bulk-edit-button">一斉変更</button>
                 </div>
@@ -67,14 +73,15 @@
         </div>
 
         <footer>
-            <p>Developed by arinomi (<a href="https://twitter.com/arinomi_loop" target="_blank" rel="noopener noreferrer">@arinomi_loop</a>)</p>
-            <p><a href="https://arinomi.replit.app/" target="_blank" rel="noopener noreferrer">その他のルーパー向けアプリはこちら</a></p>
+            <p>Developed by arinomi (<a href="https://twitter.com/arinomi_loop" target="_blank"
+                    rel="noopener noreferrer">@arinomi_loop</a>)</p>
+            <p><a href="https://arinomi.replit.app/" target="_blank" rel="noopener noreferrer">その他のルーパー支援アプリはこちら</a></p>
         </footer>
 
     </div>
 
     <div id="edit-modal" class="modal">
-         <div class="modal-content">
+        <div class="modal-content">
             <span class="close-button">×</span>
             <h3 id="modal-title">ステップ編集</h3>
             <div class="modal-controls">
@@ -166,19 +173,15 @@
     </div>
 
     <script src="script.js"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9ETY8DSP2M"></script>
     <script>
-        // サービスワーカーの登録
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker登録成功:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('ServiceWorker登録失敗:', error);
-                    });
-            });
-        }
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-9ETY8DSP2M');
     </script>
 </body>
+
 </html>
