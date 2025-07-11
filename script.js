@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkEditTriggerButton = document.getElementById('bulk-edit-button');
     const randomGenerateTriggerButton = document.getElementById('random-generate-trigger-button');
     const toastContainer = document.getElementById('toast-container');
+    const presetStatusContainer = document.getElementById('preset-status-container');
+    const currentPresetStatus = document.getElementById('current-preset-status');
 
     const confirmationModal = document.getElementById('confirmation-modal');
     const confirmationModalMessage = document.getElementById('confirmation-modal-message');
@@ -54,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
             closeConfirmationModal();
         };
 
+        confirmButton.textContent = options.confirmText || 'OK';
+        cancelButton.textContent = options.cancelText || 'キャンセル';
+
         if (options.isDanger) {
             confirmButton.classList.add('danger');
         } else {
@@ -65,6 +70,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeConfirmationModal() {
         closeModalHelper(confirmationModal);
+    }
+
+    function showLoginPromptModal() {
+        showConfirmationModal(
+            'この機能を利用するにはGoogleアカウントでのログインが必要です。',
+            () => { // onConfirm
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).catch(error => {
+                    if (error.code !== 'auth/popup-closed-by-user') {
+                        showToast(`ログインに失敗しました: ${error.message}`, 'error');
+                    }
+                });
+            },
+            { confirmText: 'Googleでログイン', cancelText: 'キャンセル' }
+        );
     }
 
     cancelButton.onclick = closeConfirmationModal;
@@ -110,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupUIComponents();
         setupEventListeners();
         initAuth();
+        loadLocalBackup(); // ローカルバックアップを読み込む
     }
 
     function setupUIComponents() {
@@ -337,7 +358,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveSingleStepChanges() {
         if (currentlyEditingStepId === null) return;
-        currentlyLoadedPresetDocId = null; // Modified, so it's a new state
         const id = currentlyEditingStepId;
         const getActiveValue = (container) => container.querySelector('button.active')?.dataset.value;
         sequenceData[id].note = getActiveValue(document.getElementById('modal-note-buttons')) || sequenceData[id].note;
@@ -346,6 +366,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sequenceData[id].volume = parseInt(document.getElementById('modal-volume').value) / 100;
         updatePlaybackBlockDisplay(id);
         closeEditModal();
+        markAsUnsaved();
+        saveLocalBackup();
     }
 
     function playTestFromSingleEditModal() {
@@ -374,7 +396,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeBulkEditModal() { closeModalHelper(bulkEditModal); }
 
     function applyBulkChanges() {
-        currentlyLoadedPresetDocId = null; // Modified
         const getActiveValue = (container) => container.querySelector('button.active')?.dataset.value;
         const changes = {
             note: getActiveValue(document.getElementById('bulk-modal-note-buttons')),
@@ -392,6 +413,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePlaybackBlockDisplay(i);
         }
         closeBulkEditModal();
+        markAsUnsaved();
+        saveLocalBackup();
     }
 
     function openRandomGenerateModal() { openModal(randomGenerateModal); }
@@ -437,10 +460,100 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast("ランダム生成を実行しまし��。", "success");
     }
 
+    // --- Local Backup & State Management ---
+    const LOCAL_BACKUP_KEY = 'oscbot_local_backup';
+
+    function applyState(state) {
+        state.sequenceData.forEach((step, i) => {
+            if (sequenceData[i]) {
+                Object.assign(sequenceData[i], step);
+                updatePlaybackBlockDisplay(i);
+            }
+        });
+        bpmInput.value = state.bpm;
+        currentNoteDuration = state.noteDuration;
+        setActiveButtonInGroup(noteDurationButtonsContainer, currentNoteDuration);
+        currentSequenceMax = state.sequenceMax;
+        setActiveButtonInGroup(sequenceMaxButtonsContainer, currentSequenceMax);
+    }
+
+    function saveLocalBackup() {
+        try {
+            const backup = {
+                sequenceData: sequenceData.map(({ note, octave, waveform, volume }) => ({ note, octave, waveform, volume })),
+                bpm: parseInt(bpmInput.value),
+                noteDuration: currentNoteDuration,
+                sequenceMax: currentSequenceMax,
+                timestamp: new Date().getTime()
+            };
+            localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(backup));
+        } catch (e) {
+            console.error("Error saving local backup:", e);
+        }
+    }
+
+    function loadLocalBackup() {
+        try {
+            const backupJSON = localStorage.getItem(LOCAL_BACKUP_KEY);
+            if (!backupJSON) {
+                updatePresetStatus(null); // Hide status on first load
+                return;
+            }
+            const backup = JSON.parse(backupJSON);
+            const oneDay = 24 * 60 * 60 * 1000;
+            if (new Date().getTime() - backup.timestamp > oneDay) {
+                clearLocalBackup();
+                updatePresetStatus(null);
+                return;
+            }
+            showConfirmationModal(
+                '前回エディタを閉じたときの未保存のシーケンスがあります。復元しますか？',
+                () => {
+                    applyState(backup);
+                    markAsUnsaved(); // Mark as unsaved after restoring
+                    showToast('シーケンスを復元しました。', 'success');
+                }
+            );
+        } catch (e) {
+            console.error("Error loading local backup:", e);
+            clearLocalBackup();
+        }
+    }
+
+    function clearLocalBackup() {
+        localStorage.removeItem(LOCAL_BACKUP_KEY);
+    }
+
+    function markAsUnsaved() {
+        let statusText;
+        // Strip existing "*" and check icon before adding a new one
+        const baseName = (currentPresetStatus.textContent || '').replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '');
+
+        if (currentlyLoadedPresetDocId && baseName) {
+            statusText = `${baseName} *`;
+        } else {
+            statusText = '未保存のシーケンス *';
+        }
+        updatePresetStatus(statusText, false);
+    }
+
+    function updatePresetStatus(text, isSaved) {
+        if (text) {
+            currentPresetStatus.textContent = text;
+            if (isSaved) {
+                currentPresetStatus.textContent = `✓ ${text}`;
+            }
+            presetStatusContainer.style.display = 'block';
+        } else {
+            currentPresetStatus.textContent = '';
+            presetStatusContainer.style.display = 'none';
+        }
+    }
+
     // --- Firebase Preset Management ---
     async function openSavePresetModal() {
         if (!currentUser) {
-            showToast('保存機能を利用するにはログインが必要です。', 'error');
+            showLoginPromptModal();
             return;
         }
         const presetNameInput = document.getElementById('preset-name');
@@ -508,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editingId) { // Updating metadata
                 await userPresetsRef.doc(editingId).update(presetData);
                 showToast('プリセット情報を更新しました。', 'success');
+                updatePresetStatus(presetData.name, true);
             } else { // Creating new preset
                 presetData.sequenceData = sequenceData.map(({ note, octave, waveform, volume }) => ({ note, octave, waveform, volume }));
                 presetData.bpm = parseInt(bpmInput.value);
@@ -515,12 +629,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 presetData.sequenceMax = currentSequenceMax;
                 presetData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                 const docRef = await userPresetsRef.add(presetData);
-                currentlyLoadedPresetDocId = docRef.id; // Now editing the new preset
+                currentlyLoadedPresetDocId = docRef.id;
                 showToast('プリセットを新規保存しました。', 'success');
+                updatePresetStatus(presetData.name, true);
+                clearLocalBackup();
             }
             closeSavePresetModal();
         } catch (error) {
-            showToast('保存に失敗しました。', 'error');
+            showToast(`保存に失敗しました: ${error.message}` , 'error');
             console.error("Error saving preset: ", error);
         }
     }
@@ -537,17 +653,21 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
             await docRef.update(presetUpdateData);
-            showToast('プリセットを上書き保存しました。', 'success');
+            const updatedDoc = await docRef.get();
+            const presetName = updatedDoc.data().name;
+            showToast(`「${presetName}」を上書き保存しました。`, 'success');
+            updatePresetStatus(presetName, true);
+            clearLocalBackup();
             closeSavePresetModal();
         } catch (error) {
-            showToast('上書き保存に失敗しました。', 'error');
+            showToast(`上書き保存に失敗しました: ${error.message}`, 'error');
             console.error("Error overwriting preset: ", error);
         }
     }
 
     function openLoadPresetModal() {
         if (!currentUser) {
-            showToast('読み込み機能を利用するにはログインが必要です。', 'error');
+            showLoginPromptModal();
             return;
         }
         populatePresetListFromFirestore();
@@ -585,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     item.querySelector('.load').onclick = (e) => { e.stopPropagation(); loadPresetFromFirestore(preset.id); };
                     item.querySelector('.edit').onclick = (e) => { e.stopPropagation(); openEditPresetMetadataModal(preset.id); };
-                    item.querySelector('.delete').onclick = (e) => { e.stopPropagation(); deletePresetFromFirestore(preset.id); };
+                    item.querySelector('.delete').onclick = (e) => { e.stopPropagation(); deletePresetFromFirestore(preset.id, preset.name); };
                     presetList.appendChild(item);
                 });
                 noResultsMessage.style.display = 'none';
@@ -633,33 +753,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('プリセットが見つかりません。', 'error'); return;
             }
             const preset = doc.data();
-            preset.sequenceData.forEach((step, i) => Object.assign(sequenceData[i], step) && updatePlaybackBlockDisplay(i));
-            bpmInput.value = preset.bpm;
-            currentNoteDuration = preset.noteDuration;
-            setActiveButtonInGroup(noteDurationButtonsContainer, currentNoteDuration);
-            currentSequenceMax = preset.sequenceMax;
-            setActiveButtonInGroup(sequenceMaxButtonsContainer, currentSequenceMax);
+            applyState(preset);
             
             currentlyLoadedPresetDocId = presetId;
+            updatePresetStatus(preset.name, true); // Mark as saved
+            clearLocalBackup(); // Clear local backup as we loaded a fresh preset
             showToast(`「${preset.name}」を読み込みました。`, 'success');
             closeLoadPresetModal();
         } catch (error) {
-            showToast('プリセットの読み込みに失敗しました。', 'error');
+            showToast(`プリセットの読み込みに失敗しました: ${error.message}`, 'error');
+            console.error("Error loading preset:", error);
         }
     }
 
-    async function deletePresetFromFirestore(presetId) {
-        if (!currentUser || !confirm('本当にこのプリセットを削除しますか？')) return;
-        try {
-            await db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId).delete();
-            showToast('プリセットを削除しました。', 'success');
-            if (currentlyLoadedPresetDocId === presetId) {
-                currentlyLoadedPresetDocId = null;
-            }
-            populatePresetListFromFirestore(); // Refresh list
-        } catch (error) {
-            showToast('プリセットの削除に失敗しました。', 'error');
-        }
+    async function deletePresetFromFirestore(presetId, presetName) {
+        if (!currentUser) return;
+
+        showConfirmationModal(
+            `本当にプリセット「${presetName}」を削除しますか？この操作は取り消せません。`,
+            async () => {
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId).delete();
+                    showToast('プリセットを削除しました。', 'success');
+                    if (currentlyLoadedPresetDocId === presetId) {
+                        currentlyLoadedPresetDocId = null;
+                        updatePresetStatus(null);
+                    }
+                    populatePresetListFromFirestore(); // Refresh list
+                } catch (error) {
+                    showToast(`プリセットの削除に失敗しました: ${error.message}`, 'error');
+                    console.error("Error deleting preset:", error);
+                }
+            },
+            { isDanger: true }
+        );
     }
 
     // --- Firebase Auth ---
@@ -685,15 +812,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         loginButton.style.display = 'none';
         userInfo.style.display = 'flex';
-        saveDataButton.style.display = 'flex';
-        loadDataButton.style.display = 'flex';
     }
 
     function hideUserInfo() {
         loginButton.style.display = 'block';
         userInfo.style.display = 'none';
-        saveDataButton.style.display = 'none';
-        loadDataButton.style.display = 'none';
     }
 
     loginButton.addEventListener('click', () => {
