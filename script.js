@@ -39,6 +39,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const randomGenerateTriggerButton = document.getElementById('random-generate-trigger-button');
     const toastContainer = document.getElementById('toast-container');
 
+    const confirmationModal = document.getElementById('confirmation-modal');
+    const confirmationModalMessage = document.getElementById('confirmation-modal-message');
+    const confirmButton = document.getElementById('confirmation-modal-confirm-button');
+    const cancelButton = document.getElementById('confirmation-modal-cancel-button');
+
+    let currentOnConfirm = null;
+
+    function showConfirmationModal(message, onConfirm, options = {}) {
+        confirmationModalMessage.textContent = message;
+        
+        confirmButton.onclick = () => {
+            if (onConfirm) onConfirm();
+            closeConfirmationModal();
+        };
+
+        if (options.isDanger) {
+            confirmButton.classList.add('danger');
+        } else {
+            confirmButton.classList.remove('danger');
+        }
+
+        openModal(confirmationModal);
+    }
+
+    function closeConfirmationModal() {
+        closeModalHelper(confirmationModal);
+    }
+
+    cancelButton.onclick = closeConfirmationModal;
+    setupModalListeners(confirmationModal, closeConfirmationModal);
+
     // Modals
     const editModal = document.getElementById('edit-modal');
     const bulkEditModal = document.getElementById('bulk-edit-modal');
@@ -186,7 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = data.playbackElements;
         el.noteDisplay.textContent = `${data.note.replace('♯', '#')}${data.octave}`;
         let waveText = waveforms[data.waveform] || data.waveform;
-        if (waveText.length > 3) waveText = waveText.substring(0, 2) + "..";
         el.waveDisplay.textContent = waveText;
         el.volumeDisplay.textContent = `Vol:${Math.round(data.volume * 100)}%`;
     }
@@ -675,7 +705,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    logoutButton.addEventListener('click', () => auth.signOut());
+    logoutButton.addEventListener('click', () => {
+        showConfirmationModal(
+            '本当にログアウトしますか？', 
+            () => auth.signOut(),
+            { isDanger: true }
+        );
+    });
 
     // --- Utility ---
     function generateButtonSelectors(container, items, groupName, displayFn = (val) => val) {

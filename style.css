@@ -82,6 +82,22 @@ body {
     vertical-align: middle;
 }
 
+#logout-button {
+  background-color: transparent;
+  padding: 8px 10px;
+  line-height: 1;
+}
+#logout-button:hover {
+  background-color: transparent;
+}
+#logout-button i {
+  font-size: 1.2em;
+  color: #e74c3c;
+}
+#logout-button:hover i {
+  color: #c0392b;
+}
+
 
 .main-content {
   flex-grow: 1;
@@ -389,7 +405,7 @@ body {
 /* Desktop & Tablet Styles */
 @media (min-width: 700px) {
   body {
-    padding: 15px;
+    padding: 40px 20px;
     height: auto;
     overflow: auto;
   }
@@ -448,20 +464,6 @@ body {
   }
   #user-name {
     font-size: 0.8em;
-  }
-  #logout-button, #logout-button:hover {
-    background-color: transparent;
-  }
-  #logout-button {
-    padding: 8px 10px;
-    line-height: 1;
-  }
-  #logout-button i {
-    font-size: 1.2em;
-    color: #e74c3c;
-  }
-  #logout-button:hover i {
-    color: #c0392b;
   }
 }
 
@@ -674,4 +676,41 @@ body {
 }
 .toast-message.success {
   background-color: var(--accent-color);
+}
+
+/* --- Confirmation Modal --- */
+#confirmation-modal .modal-content {
+    max-width: 400px;
+    text-align: center;
+}
+#confirmation-modal-message {
+    margin: 10px 0 25px;
+    line-height: 1.5;
+}
+.confirmation-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.confirmation-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: auto;
+    margin-top: 0;
+    min-width: 100px;
+}
+.modal-secondary-action-button {
+    background-color: var(--button-inactive-bg);
+    color: var(--text-color);
+}
+.modal-secondary-action-button:hover {
+    background-color: #67809f;
+}
+#confirmation-modal-confirm-button.danger {
+    background-color: #e74c3c;
+}
+#confirmation-modal-confirm-button.danger:hover {
+    background-color: #c0392b;
 }
