@@ -282,7 +282,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   cursor: pointer;
-  min-height: 30px;
+  min-height: 40px;
 }
 .settings-button-group button.active {
   background-color: var(--button-active-bg);
@@ -536,7 +536,7 @@ body {
     margin-bottom: 15px;
   }
   .button-selector-group button {
-    min-height: 38px;
+    min-height: 40px;
   }
   .modal-main-action-button, .modal-controls button:not(.button-selector-group button):not(.clear-selection-button) {
     padding: 10px 15px;
