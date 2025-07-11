@@ -59,10 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmButton.textContent = options.confirmText || 'OK';
         cancelButton.textContent = options.cancelText || 'キャンセル';
 
+        // Reset classes first
+        confirmButton.className = 'modal-main-action-button'; 
+
         if (options.isDanger) {
             confirmButton.classList.add('danger');
-        } else {
-            confirmButton.classList.remove('danger');
+        }
+        if (options.confirmClass) {
+            confirmButton.classList.add(...options.confirmClass.split(' '));
+            if (options.confirmClass.includes('google-login-button')) {
+                confirmButton.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google icon" /><span>${options.confirmText || 'OK'}</span>`;
+            }
         }
 
         openModal(confirmationModal);
@@ -83,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             },
-            { confirmText: 'Googleでログイン', cancelText: 'キャンセル' }
+            { confirmText: 'Googleでログイン', cancelText: 'キャンセル', confirmClass: 'google-login-button' }
         );
     }
 
