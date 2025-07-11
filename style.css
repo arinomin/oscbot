@@ -717,7 +717,7 @@ body {
     height: 40px;
     box-sizing: border-box;
     padding: 0 12px;
-    line-height: 40px; /* Ensure consistent line height for text centering */
+    line-height: 1; /* Remove conflicting line-height */
     border-radius: 4px;
     font-size: 0.9em;
     font-weight: 500;
@@ -742,8 +742,16 @@ body {
 .google-login-button img {
     width: 18px;
     height: 18px;
-    vertical-align: middle;
     flex-shrink: 0;
+}
+
+/* Ensure spans inside buttons don't interfere with layout */
+.google-login-button span,
+.modal-secondary-action-button span,
+#confirmation-modal-confirm-button span {
+    display: flex;
+    align-items: center;
+    line-height: 1;
 }
 
 /* --- Confirmation Modal Specifics --- */
