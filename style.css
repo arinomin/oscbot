@@ -83,6 +83,15 @@ body {
     margin-left: auto; /* Pushes auth section to the right */
 }
 
+.auth-section button {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8em;
+}
 .auth-section button:hover {
   background-color: var(--accent-hover);
 }
@@ -282,7 +291,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   cursor: pointer;
-  min-height: 40px;
+  min-height: 30px;
 }
 .settings-button-group button.active {
   background-color: var(--button-active-bg);
@@ -392,17 +401,12 @@ body {
 .button-selector-group.octave-buttons, #random-generate-modal .button-selector-group.sequence-max-buttons { grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); }
 .button-selector-group.waveform-buttons { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
 .button-selector-group button {
-  padding: 8px 6px; 
-  min-height: 40px;
+  padding: 0; aspect-ratio: 1 / 1; min-height: 40px;
   font-size: 0.85em; background-color: var(--button-inactive-bg); color: var(--text-color);
   border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.button-selector-group.note-buttons button,
-.button-selector-group.octave-buttons button { 
-  aspect-ratio: 1 / 1; 
-  padding: 0;
-}
+.button-selector-group.waveform-buttons button { aspect-ratio: auto; padding: 8px 6px; }
 .button-selector-group button.active { background-color: var(--button-active-bg); border-color: var(--accent-hover); color: white; font-weight: bold; }
 .button-selector-group button:hover:not(.active) { background-color: #67809f; }
 #random-generate-modal .modal-controls select#rg-chord-type {
@@ -536,7 +540,7 @@ body {
     margin-bottom: 15px;
   }
   .button-selector-group button {
-    min-height: 40px;
+    min-height: 38px;
   }
   .modal-main-action-button, .modal-controls button:not(.button-selector-group button):not(.clear-selection-button) {
     padding: 10px 15px;
@@ -704,87 +708,34 @@ body {
     max-width: 400px;
     text-align: center;
 }
-
-/* --- Button Styles (Unified) --- */
-
-/* Base styles for all custom buttons */
-.google-login-button,
-.modal-secondary-action-button,
-#confirmation-modal-confirm-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    box-sizing: border-box;
-    padding: 0 12px;
-    line-height: 1; /* Remove conflicting line-height */
-    border-radius: 4px;
-    font-size: 0.9em;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-    border: 1px solid transparent;
-    gap: 8px;
-}
-
-/* Google Login Button Style */
-.google-login-button {
-    background-color: #FFFFFF;
-    color: #444;
-    border-color: #DADCE0;
-}
-
-.google-login-button:hover {
-    background-color: #F8FF9FA;
-    border-color: #cce0fc;
-}
-
-.google-login-button img {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-/* Ensure spans inside buttons don't interfere with layout */
-.google-login-button span,
-.modal-secondary-action-button span,
-#confirmation-modal-confirm-button span {
-    display: flex;
-    align-items: center;
-    line-height: 1;
-}
-
-/* --- Confirmation Modal Specifics --- */
-
-.confirmation-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.confirmation-buttons .modal-secondary-action-button {
-    flex: 1;
-    background-color: var(--button-inactive-bg);
-    color: var(--text-color);
-}
-
-.confirmation-buttons .modal-secondary-action-button:hover {
-    background-color: #67809f;
-}
-
-.confirmation-buttons #confirmation-modal-confirm-button {
-    flex: 2;
-}
-
-.confirmation-buttons #confirmation-modal-confirm-button.danger {
-    background-color: #e74c3c;
-    color: white;
-}
-
-.confirmation-buttons #confirmation-modal-confirm-button.danger:hover {
-    background-color: #c0392b;
-}
-
 #confirmation-modal-message {
     margin: 10px 0 25px;
     line-height: 1.5;
+}
+.confirmation-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.confirmation-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: auto;
+    margin-top: 0;
+    min-width: 100px;
+}
+.modal-secondary-action-button {
+    background-color: var(--button-inactive-bg);
+    color: var(--text-color);
+}
+.modal-secondary-action-button:hover {
+    background-color: #67809f;
+}
+#confirmation-modal-confirm-button.danger {
+    background-color: #e74c3c;
+}
+#confirmation-modal-confirm-button.danger:hover {
+    background-color: #c0392b;
 }
