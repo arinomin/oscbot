@@ -5,15 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Firebase configuration
+    // Firebase configuration using Replit secrets
     const firebaseConfig = {
-        apiKey: "AIzaSyAoeGJRZT_yo3a1tQ3yFGZuQrfOXib9zOA",
-        authDomain: "oscbot-d8227.firebaseapp.com",
-        projectId: "oscbot-d8227",
-        storageBucket: "oscbot-d8227.firebasestorage.app",
-        messagingSenderId: "141086251490",
-        appId: "1:141086251490:web:563fc704f597d9c42e41bb",
-        measurementId: "G-KJT58Y6VGV"
+        apiKey: window.replit?.secrets?.FIREBASE_API_KEY || "AIzaSyAoeGJRZT_yo3a1tQ3yFGZuQrfOXib9zOA",
+        authDomain: window.replit?.secrets?.FIREBASE_AUTH_DOMAIN || "oscbot-d8227.firebaseapp.com",
+        projectId: window.replit?.secrets?.FIREBASE_PROJECT_ID || "oscbot-d8227",
+        storageBucket: window.replit?.secrets?.FIREBASE_STORAGE_BUCKET || "oscbot-d8227.firebasestorage.app",
+        messagingSenderId: window.replit?.secrets?.FIREBASE_MESSAGING_SENDER_ID || "141086251490",
+        appId: window.replit?.secrets?.FIREBASE_APP_ID || "1:141086251490:web:563fc704f597d9c42e41bb",
+        measurementId: window.replit?.secrets?.FIREBASE_MEASUREMENT_ID || "G-KJT58Y6VGV"
     };
 
     firebase.initializeApp(firebaseConfig);
