@@ -188,6 +188,90 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('rg-execute-button').onclick = executeRandomGeneration;
         document.getElementById('save-preset-button').onclick = saveOrUpdatePresetInFirestore;
         document.getElementById('search-box').addEventListener('input', populatePresetListFromFirestore);
+        setupKeyboardShortcuts();
+    }
+
+    function setupKeyboardShortcuts() {
+        window.addEventListener('keydown', (e) => {
+            // Stop if typing in an input, textarea, or select
+            const activeElement = document.activeElement;
+            const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
+            if (isTyping) return;
+
+            // Stop if a modal is not the target and a key other than Escape is pressed
+            const isModalActive = document.querySelector('.modal.active');
+            if (isModalActive && e.key !== 'Escape') return;
+
+            e.preventDefault();
+
+            switch (e.key) {
+                case ' ': // Space
+                    if (isPlaying) {
+                        stopButton.click();
+                    } else {
+                        playLoopButton.click();
+                    }
+                    break;
+                case 'Enter':
+                    playOnceButton.click();
+                    break;
+                case 'ArrowUp':
+                    adjustBpm(e.shiftKey ? 10 : 1);
+                    break;
+                case 'ArrowDown':
+                    adjustBpm(e.shiftKey ? -10 : -1);
+                    break;
+                case 'ArrowRight':
+                    navigateButtonGroup(e.shiftKey ? sequenceMaxButtonsContainer : noteDurationButtonsContainer, 1);
+                    break;
+                case 'ArrowLeft':
+                    navigateButtonGroup(e.shiftKey ? sequenceMaxButtonsContainer : noteDurationButtonsContainer, -1);
+                    break;
+                case 'Escape':
+                    if (isModalActive) {
+                        isModalActive.querySelector('.close-button').click();
+                    } else if (isPlaying) {
+                        stopButton.click();
+                    }
+                    break;
+                case 'r':
+                case 'R':
+                    randomGenerateTriggerButton.click();
+                    break;
+                case 'b':
+                case 'B':
+                    bulkEditTriggerButton.click();
+                    break;
+                case 's':
+                case 'S':
+                    saveDataButton.click();
+                    break;
+                case 'l':
+                case 'L':
+                    loadDataButton.click();
+                    break;
+            }
+        });
+    }
+
+    function navigateButtonGroup(container, direction) {
+        const buttons = Array.from(container.querySelectorAll('button'));
+        const activeButton = container.querySelector('button.active');
+        let currentIndex = buttons.findIndex(btn => btn === activeButton);
+        
+        if (currentIndex === -1) { // If no button is active, select the first one
+            currentIndex = 0;
+        } else {
+            currentIndex += direction;
+        }
+
+        if (currentIndex >= buttons.length) {
+            currentIndex = 0;
+        } else if (currentIndex < 0) {
+            currentIndex = buttons.length - 1;
+        }
+        
+        buttons[currentIndex].click();
     }
 
     function setupModalListeners(modalElement, closeFn) {
