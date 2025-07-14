@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmationModalMessage = document.getElementById('confirmation-modal-message');
     const confirmButton = document.getElementById('confirmation-modal-confirm-button');
     const cancelButton = document.getElementById('confirmation-modal-cancel-button');
+    const alternativeButton = document.getElementById('confirmation-modal-alternative-button');
 
     let currentOnConfirm = null;
 
@@ -55,6 +56,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (onConfirm) onConfirm();
             closeConfirmationModal();
         };
+
+        if (options.onAlternative) {
+            alternativeButton.style.display = 'inline-block';
+            alternativeButton.textContent = options.alternativeText || '選択肢';
+            alternativeButton.onclick = () => {
+                options.onAlternative();
+                closeConfirmationModal();
+            };
+        } else {
+            alternativeButton.style.display = 'none';
+        }
 
         confirmButton.textContent = options.confirmText || 'OK';
         cancelButton.textContent = options.cancelText || 'キャンセル';
@@ -70,6 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeConfirmationModal() {
         closeModalHelper(confirmationModal);
+        // Reset alternative button to avoid it showing up in other modals
+        alternativeButton.style.display = 'none';
+        alternativeButton.onclick = null;
     }
 
     function showLoginPromptModal() {
@@ -105,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let sequenceTimeoutId = null;
     let activeOscillators = [];
     let currentlyEditingStepId = null;
+    let dragSrcElement = null;
     let currentSequenceMax = 16;
     let currentNoteDuration = 1;
     let currentlyLoadedPresetDocId = null; // Firestore doc ID
@@ -157,6 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         bpmAdjustButtons.forEach(button => button.addEventListener('click', () => adjustBpm(parseInt(button.dataset.step))));
         bpmInput.addEventListener('change', () => bpmInput.value = Math.max(20, Math.min(300, parseInt(bpmInput.value) || 120)));
+
+        setupDragAndDropListeners();
 
         setupModalListeners(editModal, closeEditModal);
         setupModalListeners(bulkEditModal, closeBulkEditModal);
@@ -274,6 +292,97 @@ document.addEventListener('DOMContentLoaded', () => {
         buttons[currentIndex].click();
     }
 
+    function setupDragAndDropListeners() {
+        playbackGrid.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('playback-block')) {
+                dragSrcElement = e.target;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', e.target.innerHTML);
+                e.target.classList.add('dragging');
+            }
+        });
+
+        playbackGrid.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const target = e.target.closest('.playback-block');
+            if (target && target !== dragSrcElement) {
+                target.classList.add('drag-over');
+            }
+        });
+
+        playbackGrid.addEventListener('dragleave', (e) => {
+            const target = e.target.closest('.playback-block');
+            if (target) {
+                target.classList.remove('drag-over');
+            }
+        });
+
+        playbackGrid.addEventListener('dragend', (e) => {
+            e.target.classList.remove('dragging');
+        });
+
+        playbackGrid.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const targetElement = e.target.closest('.playback-block');
+            if (!targetElement || !dragSrcElement || targetElement === dragSrcElement) {
+                if(targetElement) targetElement.classList.remove('drag-over');
+                return;
+            }
+
+            targetElement.classList.remove('drag-over');
+            const sourceId = parseInt(dragSrcElement.dataset.id);
+            const targetId = parseInt(targetElement.dataset.id);
+
+            showConfirmationModal(
+                `ステップ${sourceId + 1}のデータをステップ${targetId + 1}と入れ替えますか？`,
+                () => { // onConfirm for Swap
+                    swapStepData(sourceId, targetId);
+                    showToast(`ステップ${sourceId + 1}と${targetId + 1}を入れ替えました`, 'success');
+                },
+                {
+                    confirmText: '入れ替え',
+                    cancelText: 'キャンセル',
+                    // Add a third option for 'Overwrite'
+                    onAlternative: () => {
+                        copyStepData(sourceId, targetId);
+                        showToast(`ステップ${sourceId + 1}をステップ${targetId + 1}に上書きしました`, 'success');
+                    },
+                    alternativeText: '上書き'
+                }
+            );
+            dragSrcElement = null;
+        });
+    }
+
+    function swapStepData(sourceId, targetId) {
+        const sourceData = { ...sequenceData[sourceId] };
+        const targetData = { ...sequenceData[targetId] };
+
+        // Swap all properties except playbackElements
+        ['note', 'octave', 'waveform', 'volume'].forEach(key => {
+            sequenceData[sourceId][key] = targetData[key];
+            sequenceData[targetId][key] = sourceData[key];
+        });
+
+        updatePlaybackBlockDisplay(sourceId);
+        updatePlaybackBlockDisplay(targetId);
+        markAsUnsaved();
+        saveLocalBackup();
+    }
+
+    function copyStepData(sourceId, targetId) {
+        const sourceData = { ...sequenceData[sourceId] };
+
+        // Copy properties
+        ['note', 'octave', 'waveform', 'volume'].forEach(key => {
+            sequenceData[targetId][key] = sourceData[key];
+        });
+
+        updatePlaybackBlockDisplay(targetId);
+        markAsUnsaved();
+        saveLocalBackup();
+    }
+
     function setupModalListeners(modalElement, closeFn) {
         modalElement.querySelector('.close-button').onclick = closeFn;
         window.addEventListener('click', (event) => {
@@ -300,6 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const block = document.createElement('div');
             block.className = 'playback-block';
             block.dataset.id = i;
+            block.draggable = true; // Enable dragging
             block.onclick = () => openEditModal(i);
             const stepNumEl = document.createElement('span');
             stepNumEl.className = 'step-number-pb';

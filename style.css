@@ -170,6 +170,15 @@ body {
   transform: translateY(0);
 }
 
+.playback-block.dragging {
+  opacity: 0.4;
+}
+
+.playback-block.drag-over {
+  border-style: dashed;
+  border-color: var(--accent-color);
+}
+
 .playback-block .step-number-pb {
   position: absolute;
   top: 2px;
