@@ -1,4 +1,8 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Replit Secretsの読み込みを待つ
+    while (!window.replit || !window.replit.secrets) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (!audioCtx) {
         alert("Web Audio API not supported.");
