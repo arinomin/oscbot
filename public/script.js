@@ -424,12 +424,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             stepNumEl.textContent = i + 1;
             const noteEl = document.createElement('div'); noteEl.className = 'pb-note';
             const waveEl = document.createElement('div'); waveEl.className = 'pb-wave';
-            const volEl = document.createElement('div'); volEl.className = 'pb-volume';
-            block.append(stepNumEl, noteEl, waveEl, volEl);
+            const volContainerEl = document.createElement('div'); volContainerEl.className = 'pb-volume-container';
+            const volBarEl = document.createElement('div'); volBarEl.className = 'pb-volume-bar';
+            volContainerEl.appendChild(volBarEl);
+
+            block.append(stepNumEl, noteEl, waveEl, volContainerEl);
             playbackGrid.appendChild(block);
             sequenceData.push({
                 id: i, note: 'A', octave: 4, waveform: 'sawtooth', volume: 0.5,
-                playbackElements: { blockElement: block, noteDisplay: noteEl, waveDisplay: waveEl, volumeDisplay: volEl }
+                playbackElements: { blockElement: block, noteDisplay: noteEl, waveDisplay: waveEl, volumeBar: volBarEl }
             });
             updatePlaybackBlockDisplay(i);
         }
@@ -441,7 +444,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         el.noteDisplay.textContent = `${data.note.replace('♯', '#')}${data.octave}`;
         let waveText = waveforms[data.waveform] || data.waveform;
         el.waveDisplay.textContent = waveText;
-        el.volumeDisplay.textContent = `Vol:${Math.round(data.volume * 100)}%`;
+        el.volumeBar.style.width = `${data.volume * 100}%`;
     }
 
     function handlePlay(loop) {

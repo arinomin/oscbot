@@ -194,7 +194,28 @@ body {
   margin-bottom: 2px;
 }
 
-.playback-block .pb-wave, .playback-block .pb-volume {
+.playback-block .pb-wave {
+  font-size: 0.9em;
+  margin-bottom: 4px;
+}
+
+.pb-volume-container {
+  width: 80%;
+  height: 6px;
+  background-color: var(--primary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pb-volume-bar {
+  height: 100%;
+  background-color: var(--accent-color);
+  width: 50%; /* Default width */
+  transition: width 0.2s ease-in-out;
+}
+
+.playback-block .pb-volume {
   font-size: 0.9em;
 }
 
