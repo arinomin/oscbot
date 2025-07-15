@@ -1,22 +1,12 @@
 
-
-// Replit環境でのSecrets読み込み（API経由）
-async function loadReplitSecrets() {
-  try {
-    const response = await fetch('/api/secrets');
-    if (!response.ok) {
-      throw new Error(`Secrets API error: ${response.status}`);
-    }
-    const secrets = await response.json();
-    
-    window.replit = { secrets };
-    console.log('Replit secrets loaded successfully');
-  } catch (error) {
-    console.error('Failed to load Replit secrets:', error);
-    window.replit = { secrets: {} };
+window.replit = {
+  secrets: {
+    FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
+    FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
+    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+    FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
+    FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
+    FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
   }
-}
-
-// DOM読み込み完了前にSecretsを読み込む
-loadReplitSecrets();
-
+};

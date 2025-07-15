@@ -1,8 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    // Replit Secretsの読み込みを待つ
-    while (!window.replit || !window.replit.secrets) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
+document.addEventListener('DOMContentLoaded', () => {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (!audioCtx) {
         alert("Web Audio API not supported.");
@@ -11,23 +7,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Firebase configuration using Replit secrets
     const firebaseConfig = {
-        apiKey: window.replit?.secrets?.FIREBASE_API_KEY,
-        authDomain: window.replit?.secrets?.FIREBASE_AUTH_DOMAIN,
-        projectId: window.replit?.secrets?.FIREBASE_PROJECT_ID,
-        storageBucket: window.replit?.secrets?.FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: window.replit?.secrets?.FIREBASE_MESSAGING_SENDER_ID,
-        appId: window.replit?.secrets?.FIREBASE_APP_ID,
-        measurementId: window.replit?.secrets?.FIREBASE_MEASUREMENT_ID
+        apiKey: window.replit?.secrets?.FIREBASE_API_KEY || "AIzaSyAoeGJRZT_yo3a1tQ3yFGZuQrfOXib9zOA",
+        authDomain: window.replit?.secrets?.FIREBASE_AUTH_DOMAIN || "oscbot-d8227.firebaseapp.com",
+        projectId: window.replit?.secrets?.FIREBASE_PROJECT_ID || "oscbot-d8227",
+        storageBucket: window.replit?.secrets?.FIREBASE_STORAGE_BUCKET || "oscbot-d8227.firebasestorage.app",
+        messagingSenderId: window.replit?.secrets?.FIREBASE_MESSAGING_SENDER_ID || "141086251490",
+        appId: window.replit?.secrets?.FIREBASE_APP_ID || "1:141086251490:web:563fc704f597d9c42e41bb",
+        measurementId: window.replit?.secrets?.FIREBASE_MEASUREMENT_ID || "G-KJT58Y6VGV"
     };
-
-    // Firebase設定の検証
-    const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-    const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
-    
-    if (missingKeys.length > 0) {
-        alert(`Firebase設定が不完全です。以下のSecretが設定されていません: ${missingKeys.join(', ')}`);
-        return;
-    }
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -360,7 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         copyStepData(sourceId, targetId);
                         showToast(`ステップ${sourceId + 1}をステップ${targetId + 1}に上書きしました`, 'success');
                     },
-                    alternativeText: 'コピー(上書き'
+                    alternativeText: '上書き'
                 }
             );
             dragSrcElement = null;
