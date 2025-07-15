@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         copyStepData(sourceId, targetId);
                         showToast(`ステップ${sourceId + 1}をステップ${targetId + 1}に上書きしました`, 'success');
                     },
-                    alternativeText: '上書き'
+                    alternativeText: 'コピー(上書き'
                 }
             );
             dragSrcElement = null;
