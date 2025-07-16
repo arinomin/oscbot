@@ -245,6 +245,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     const noteDurations = [{ value: 0.25, label: "16分" }, { value: 1 / 3, label: "1拍3連" }, { value: 0.5, label: "8分" }, { value: 2 / 3, label: "2拍3連" }, { value: 1, label: "4分" }, { value: 2, label: "2分" }, { value: 4, label: "全音符" }];
     const chordTypes = { 'major': { name: 'メジャー', intervals: [0, 4, 7] }, 'minor': { name: 'マイナー', intervals: [0, 3, 7] }, 'dominant7th': { name: 'ドミナント7th', intervals: [0, 4, 7, 10] }, 'major7th': { name: 'メジャー7th', intervals: [0, 4, 7, 11] }, 'minor7th': { name: 'マイナー7th', intervals: [0, 3, 7, 10] }, 'diminished': { name: 'ディミニッシュ', intervals: [0, 3, 6] }, 'augmented': { name: 'オーギュメント', intervals: [0, 4, 8] }, 'sus4': { name: 'サスフォー', intervals: [0, 5, 7] }, 'majorPentatonic': { name: 'メジャーペンタ', intervals: [0, 2, 4, 7, 9] }, 'minorPentatonic': { name: 'マイナーペンタ', intervals: [0, 3, 5, 7, 10] } };
 
+    function openModal(modalElement) {
+        modalElement.style.display = "flex";
+        setTimeout(() => modalElement.classList.add('active'), 10);
+    }
+
+    function closeModalHelper(modalElement) {
+        modalElement.classList.remove('active');
+        setTimeout(() => modalElement.style.display = "none", 300);
+    }
+
+    function openLoadPresetModal() {
+        if (!currentUser) {
+            showLoginPromptModal();
+            return;
+        }
+        populatePresetListFromFirestore();
+        openModal(loadPresetModal);
+    }
+
+    function openBulkEditModal() {
+        [document.getElementById('bulk-modal-note-buttons'), document.getElementById('bulk-modal-octave-buttons'), document.getElementById('bulk-modal-waveform-buttons')]
+            .forEach(container => container.querySelectorAll('button.active').forEach(btn => btn.classList.remove('active')));
+        const bulkVolumeSlider = document.getElementById('bulk-modal-volume');
+        bulkVolumeSlider.value = 50;
+        document.getElementById('bulk-modal-volume-display').textContent = '50%';
+        bulkVolumeSlider.dataset.isSetForBulk = "false";
+        bulkVolumeSlider.style.opacity = 0.5;
+        document.getElementById('bulk-modal-volume-display').style.opacity = 0.5;
+        updateSliderFill(bulkVolumeSlider);
+        openModal(bulkEditModal);
+    }
+
+    function openRandomGenerateModal() { openModal(randomGenerateModal); }
+
     async function init() {
         await setupAudioRouting();
         await initializeFxNodes();
@@ -755,7 +789,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             targetElement.classList.remove('drag-over');
             const sourceId = parseInt(dragSrcElement.dataset.id);
             const targetId = parseInt(targetElement.dataset.id);
-            showConfirmationModal(`ステップ${sourceId + 1}のデータをステップ${targetId + 1}と入れ替えますか？`,
+            showConfirmationModal(`ステップ${sourceId + 1}のデータをステップ${targetId + 1}と入れ替えますか?`,
                 () => { swapStepData(sourceId, targetId); },
                 { confirmText: '入れ替え', cancelText: 'キャンセル', onAlternative: () => { copyStepData(sourceId, targetId); }, alternativeText: '上書き' }
             );
@@ -930,29 +964,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function openModal(modalElement) {
-        modalElement.style.display = "flex";
-        setTimeout(() => modalElement.classList.add('active'), 10);
-    }
-
-    function closeModalHelper(modalElement) {
-        modalElement.classList.remove('active');
-        setTimeout(() => modalElement.style.display = "none", 300);
-    }
-
-    function openEditModal(id) {
-        currentlyEditingStepId = id;
-        const data = sequenceData[id];
-        document.getElementById('modal-title').textContent = `ステップ ${id + 1} 編集`;
-        setActiveButtonInGroup(document.getElementById('modal-note-buttons'), data.note);
-        setActiveButtonInGroup(document.getElementById('modal-octave-buttons'), data.octave);
-        setActiveButtonInGroup(document.getElementById('modal-waveform-buttons'), data.waveform);
-        const volumeSlider = document.getElementById('modal-volume');
-        volumeSlider.value = data.volume * 100;
-        updateSliderFill(volumeSlider);
-        document.getElementById('modal-volume-display').textContent = `${Math.round(data.volume * 100)}%`;
-        openModal(editModal);
-    }
     function closeEditModal() { closeModalHelper(editModal); currentlyEditingStepId = null; }
 
     function saveSingleStepChanges() {
@@ -980,18 +991,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         playSoundWithResume(testData, 0.5);
     }
 
-    function openBulkEditModal() {
-        [document.getElementById('bulk-modal-note-buttons'), document.getElementById('bulk-modal-octave-buttons'), document.getElementById('bulk-modal-waveform-buttons')]
-            .forEach(container => container.querySelectorAll('button.active').forEach(btn => btn.classList.remove('active')));
-        const bulkVolumeSlider = document.getElementById('bulk-modal-volume');
-        bulkVolumeSlider.value = 50;
-        document.getElementById('bulk-modal-volume-display').textContent = '50%';
-        bulkVolumeSlider.dataset.isSetForBulk = "false";
-        bulkVolumeSlider.style.opacity = 0.5;
-        document.getElementById('bulk-modal-volume-display').style.opacity = 0.5;
-        updateSliderFill(bulkVolumeSlider);
-        openModal(bulkEditModal);
-    }
     function closeBulkEditModal() { closeModalHelper(bulkEditModal); }
 
     function applyBulkChanges() {
@@ -1015,7 +1014,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         markAsDirty();
     }
 
-    function openRandomGenerateModal() { openModal(randomGenerateModal); }
     function closeRandomGenerateModal() { closeModalHelper(randomGenerateModal); }
 
     function executeRandomGeneration() {
@@ -1193,7 +1191,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updatePresetStatus(text, isSaved, isDirty = false) {
         let statusText = text || '新規シーケンス';
-        const baseName = statusText.replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
+        const baseName = statusText.replace(/\s\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
 
         if (isSaved) {
             statusText = `✓ ${baseName}`;
@@ -1213,92 +1211,145 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function togglePresetActionMenu() {
-        const isDisplayed = presetActionMenu.style.display === 'block';
-        presetActionMenu.style.display = isDisplayed ? 'none' : 'block';
-        if (!isDisplayed) {
-            const rect = presetMenuButton.getBoundingClientRect();
-            presetActionMenu.style.top = `${rect.bottom + 5}px`;
-            presetActionMenu.style.left = `${rect.left}px`;
+    function closeSavePresetModal() {
+        const existingOverwriteBtn = document.getElementById('overwrite-preset-button');
+        if(existingOverwriteBtn) existingOverwriteBtn.remove();
+        closeModalHelper(savePresetModal);
+    }
+
+    async function saveOrUpdatePresetInFirestore() {
+        if (!currentUser) {
+            showToast('ログインが必要です。', 'error');
+            return;
         }
-    }
-
-    async function handlePresetAction(e) {
-        const action = e.target.dataset.action;
-        presetActionMenu.style.display = 'none';
-        if (!action) return;
-
-        switch (action) {
-            case 'rename':
-                openRenameModal();
-                break;
-            case 'duplicate':
-                await handleDuplicatePreset();
-                break;
-            case 'new':
-                handleNewPreset();
-                break;
-        }
-    }
-
-    function openRenameModal() {
-        const currentName = currentPresetStatus.textContent.replace(/^[\u2713\s*]*/, '').replace(/\s*\*$/, '');
-        document.getElementById('new-preset-name').value = currentName;
-        openModal(renamePresetModal);
-    }
-
-    async function handleRenamePreset() {
-        const newName = document.getElementById('new-preset-name').value.trim();
-        if (!newName) {
+        const name = document.getElementById('preset-name').value.trim();
+        if (!name) {
             showToast('プリセット名は必須です。', 'error');
             return;
         }
-        if (!currentlyLoadedPresetDocId || !currentUser) return;
+        const editingId = savePresetModal.dataset.editingId;
+        const presetData = {
+            name: name,
+            description: document.getElementById('preset-description').value.trim(),
+            tags: document.getElementById('preset-tags').value.trim().split(',').map(t => t.trim()).filter(t => t),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
 
-        const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(currentlyLoadedPresetDocId);
         try {
-            await docRef.update({ name: newName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            updatePresetStatus(newName, true);
-            closeModalHelper(renamePresetModal);
-            showToast('名前を変更しました', 'success');
+            const userPresetsRef = db.collection('users').doc(currentUser.uid).collection('presets');
+            if (editingId) {
+                await userPresetsRef.doc(editingId).update(presetData);
+                showToast('プリセット情報を更新しました。', 'success');
+                updatePresetStatus(presetData.name, true);
+            } else {
+                const fullPresetData = {
+                    ...presetData,
+                    ...getCurrentState(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                const docRef = await userPresetsRef.add(fullPresetData);
+                currentlyLoadedPresetDocId = docRef.id;
+                showToast('プリセットを新規保存しました。', 'success');
+                updatePresetStatus(presetData.name, true);
+                clearLocalBackup();
+            }
+            closeSavePresetModal();
         } catch (error) {
-            showToast(`名前の変更に失敗: ${error.message}`, 'error');
-            console.error("Rename error: ", error);
+            showToast(`保存に失敗しました: ${error.message}` , 'error');
+            console.error("Error saving preset: ", error);
+        }
+    }
+    
+    async function overwritePresetInFirestore(presetId) {
+        if (!currentUser || !presetId) return;
+        const presetUpdateData = {
+            ...getCurrentState(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        try {
+            const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
+            await docRef.update(presetUpdateData);
+            const updatedDoc = await docRef.get();
+            const presetName = updatedDoc.data().name;
+            showToast(`「${presetName}」を上書き保存しました。`, 'success');
+            updatePresetStatus(presetName, true);
+            clearLocalBackup();
+            closeSavePresetModal();
+        } catch (error) {
+            showToast(`上書き保存に失敗しました: ${error.message}`, 'error');
+            console.error("Error overwriting preset: ", error);
         }
     }
 
-    async function handleDuplicatePreset() {
+    function closeLoadPresetModal() { closeModalHelper(loadPresetModal); }
+
+    async function populatePresetListFromFirestore() {
         if (!currentUser) return;
-        const originalName = currentPresetStatus.textContent.replace(/^[\u2713\s*]*/, '').replace(/\s*\*$/, '');
-        const newName = `${originalName} のコピー`;
-        const state = getCurrentState();
-
+        const presetList = document.getElementById('preset-list');
+        const noResultsMessage = document.getElementById('no-results-message');
+        const searchTerm = document.getElementById('search-box').value.toLowerCase();
+        presetList.innerHTML = '読み込み中...';
+        
         try {
-            const docRef = await db.collection('users').doc(currentUser.uid).collection('presets').add({
-                ...state,
-                name: newName,
-                description: '',
-                tags: [],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-            currentlyLoadedPresetDocId = docRef.id;
-            updatePresetStatus(newName, true);
-            showToast(`「${newName}」として複製しました`, 'success');
+            const snapshot = await db.collection('users').doc(currentUser.uid).collection('presets').orderBy('updatedAt', 'desc').get();
+            const presets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            const filteredPresets = presets.filter(p => p.name.toLowerCase().includes(searchTerm) || (p.description && p.description.toLowerCase().includes(searchTerm)));
+
+            presetList.innerHTML = '';
+            if (filteredPresets.length > 0) {
+                filteredPresets.forEach(preset => {
+                    const item = document.createElement('li');
+                    item.className = 'preset-list-item';
+                    item.innerHTML = `
+                        <h3>${preset.name}</h3>
+                        <p>${preset.description || '説明なし'}</p>
+                        <div class="tags">${(preset.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+                        <div class="actions">
+                            <button class="action-button edit">編集</button>
+                            <button class="action-button delete">削除</button>
+                            <button class="action-button load">読込</button>
+                        </div>
+                    `;
+                    item.querySelector('.load').onclick = (e) => { e.stopPropagation(); loadPresetFromFirestore(preset.id); };
+                    item.querySelector('.edit').onclick = (e) => { e.stopPropagation(); openEditPresetMetadataModal(preset.id); };
+                    item.querySelector('.delete').onclick = (e) => { e.stopPropagation(); deletePresetFromFirestore(preset.id, preset.name); };
+                    presetList.appendChild(item);
+                });
+                noResultsMessage.style.display = 'none';
+            } else {
+                noResultsMessage.style.display = 'block';
+            }
         } catch (error) {
-            showToast(`複製に失敗: ${error.message}`, 'error');
-            console.error("Duplicate error: ", error);
+            presetList.innerHTML = 'プリセットの読み込みに失敗しました。';
+            showToast('プリセットの読み込みに失敗しました。', 'error');
+            console.error("Error populating presets: ", error);
         }
     }
 
-    function handleNewPreset() {
-        showConfirmationModal('現在の作業内容を破棄して、新規シーケンスを作成しますか？', () => {
-            currentlyLoadedPresetDocId = null;
-            createPlaybackBlocks(); // Reset sequence
-            initializeFxNodes(); // Reset FX
-            updatePresetStatus(null);
-            showToast('新しいシーケンスを開始しました', 'success');
-        });
+    async function openEditPresetMetadataModal(presetId) {
+        if (!currentUser) return;
+        try {
+            const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
+            const doc = await docRef.get();
+            if (!doc.exists) {
+                showToast('編集対象のプリセットが見つかりません。', 'error');
+                return;
+            }
+            const preset = doc.data();
+            document.getElementById('preset-name').value = preset.name;
+            document.getElementById('preset-description').value = preset.description || '';
+            document.getElementById('preset-tags').value = (preset.tags || []).join(', ');
+            document.getElementById('save-preset-button').textContent = '変更を保存';
+            savePresetModal.dataset.editingId = presetId;
+            
+            const existingOverwriteBtn = document.getElementById('overwrite-preset-button');
+            if(existingOverwriteBtn) existingOverwriteBtn.remove();
+
+            openModal(savePresetModal);
+        } catch (error) {
+            showToast('プリセット情報の取得に失敗しました。', 'error');
+        }
     }
 
     async function loadPresetFromFirestore(presetId) {
