@@ -1140,12 +1140,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function markAsDirty() {
         saveLocalBackup();
+<<<<<<< HEAD
         updatePresetStatus(currentPresetStatus.textContent, false, true);
+=======
+        let statusText;
+        const baseName = (currentPresetStatus.textContent || '').replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '');
+        if (currentlyLoadedPresetDocId && baseName) {
+            statusText = `${baseName} *`;
+        } else {
+            statusText = '未保存のシーケンス *';
+        }
+        updatePresetStatus(statusText, false);
+>>>>>>> dd5bf6ea7b916614fc93ae3f4512066db86a2644
 
         if (!currentUser) return;
 
         if (autoSaveTimer) clearTimeout(autoSaveTimer);
         autoSaveTimer = setTimeout(performAutoSave, 2500);
+<<<<<<< HEAD
+=======
+    }
+
+    async function performAutoSave() {
+        if (!currentUser) return;
+        updatePresetStatus('保存中...', false);
+        try {
+            const state = getCurrentState();
+            let presetName;
+            if (currentlyLoadedPresetDocId) {
+                const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(currentlyLoadedPresetDocId);
+                await docRef.update({ ...state, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                presetName = (await docRef.get()).data().name;
+            } else {
+                presetName = `無題 ${new Date().toLocaleString()}`;
+                const docRef = await db.collection('users').doc(currentUser.uid).collection('presets').add({
+                    ...state,
+                    name: presetName,
+                    description: '',
+                    tags: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+                currentlyLoadedPresetDocId = docRef.id;
+            }
+            updatePresetStatus(presetName, true);
+            clearLocalBackup();
+        } catch (error) {
+            showToast(`自動保存に失敗: ${error.message}`, 'error');
+            console.error("Auto-save error: ", error);
+            updatePresetStatus(currentPresetStatus.textContent.replace('保存中...', '') + '*', false);
+        }
+>>>>>>> dd5bf6ea7b916614fc93ae3f4512066db86a2644
     }
 
     async function performAutoSave() {
