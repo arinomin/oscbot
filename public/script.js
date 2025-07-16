@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logoutButton = document.getElementById('logout-button');
     const userInfo = document.getElementById('user-info');
     const userName = document.getElementById('user-name');
-    const saveDataButton = document.getElementById('save-data-button');
     const loadDataButton = document.getElementById('load-data-button');
     const playbackGrid = document.getElementById('playback-grid');
     const sequenceMaxButtonsContainer = document.getElementById('sequence-max-buttons');
@@ -324,7 +323,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         stopButton.onclick = stopAllSounds;
         bulkEditTriggerButton.onclick = openBulkEditModal;
         randomGenerateTriggerButton.onclick = openRandomGenerateModal;
-        saveDataButton.onclick = openSavePresetModal;
         loadDataButton.onclick = openLoadPresetModal;
         bpmAdjustButtons.forEach(button => button.addEventListener('click', () => {
             adjustBpm(parseInt(button.dataset.step));
@@ -702,7 +700,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 case 'Escape': if (isModalActive) isModalActive.querySelector('.close-button').click(); else if (isPlaying) stopButton.click(); e.preventDefault(); break;
                 case 'r': case 'R': randomGenerateTriggerButton.click(); break;
                 case 'b': case 'B': bulkEditTriggerButton.click(); break;
-                case 's': case 'S': saveDataButton.click(); break;
                 case 'l': case 'L': loadDataButton.click(); break;
             }
         });
@@ -1143,14 +1140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function markAsDirty() {
         saveLocalBackup();
-        let statusText;
-        const baseName = (currentPresetStatus.textContent || '').replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '');
-        if (currentlyLoadedPresetDocId && baseName) {
-            statusText = `${baseName} *`;
-        } else {
-            statusText = '未保存のシーケンス *';
-        }
-        updatePresetStatus(statusText, false);
+        updatePresetStatus(currentPresetStatus.textContent, false, true);
 
         if (!currentUser) return;
 
@@ -1185,20 +1175,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             showToast(`自動保存に失敗: ${error.message}`, 'error');
             console.error("Auto-save error: ", error);
-            updatePresetStatus(currentPresetStatus.textContent.replace('保存中...', '') + '*', false);
+            updatePresetStatus(currentPresetStatus.textContent.replace('保存中...', ''), false, true);
         }
     }
 
-    function updatePresetStatus(text, isSaved) {
-        if (text) {
-            currentPresetStatus.textContent = text;
-            if (isSaved) {
-                currentPresetStatus.textContent = `✓ ${text}`;
-            }
-            presetStatusContainer.style.display = 'block';
-        } else {
-            currentPresetStatus.textContent = '';
+    function updatePresetStatus(text, isSaved, isDirty = false) {
+        let statusText = text || '新規シーケンス';
+        const baseName = statusText.replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
+
+        if (isSaved) {
+            statusText = `✓ ${baseName}`;
+        } else if (text === '保存中...') {
+            statusText = '保存中...';
+        } else if (isDirty) {
+            statusText = `${baseName} *`;
+        }
+
+        if (text === null) {
             presetStatusContainer.style.display = 'none';
+        } else {
+            currentPresetStatus.textContent = statusText;
+            presetStatusContainer.style.display = 'block';
         }
     }
 
