@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             bypassNode: null, 
             isActive: false, 
             effectType: 'delay', 
-            params: { mix: 0.5, time: 0.25, feedback: 0.4, syncMode: 'time', rate: 4 } 
+            params: { mix: 0.5, time: 0.25, feedback: 0.4, syncMode: 'bpm', rate: 4 } 
         },
         { 
             id: 'C', 
@@ -173,8 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             params: {
                 mix: { label: 'Mix', type: 'range', min: 0, max: 1, step: 0.01, value: 0.5 },
                 feedback: { label: 'Feedback', type: 'range', min: 0, max: 0.9, step: 0.01, value: 0.4 },
-                syncMode: { label: 'BPM Sync', type: 'toggle', value: 'time' }, // 'time' or 'bpm'
-                time: { label: 'Time (sec)', type: 'range', min: 0.01, max: 2, step: 0.01, value: 0.25 },
+                time: { label: 'Time', type: 'range', min: 0.01, max: 2, step: 0.01, value: 0.25 },
                 rate: {
                     label: 'Rate',
                     type: 'buttons',
@@ -224,9 +223,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 lfo.type = 'square';
                 slicerGain.gain.value = 0; // Start with 0 gain, modulated by LFO
 
-                // LFO (-1 to 1) -> lfoGain -> slicerGain.gain
-                // dcOffset (1) -> slicerGain.gain
-                // This makes the gain modulate between 0 and `depth`
                 lfo.connect(lfoGain);
                 lfoGain.connect(slicerGain.gain);
                 dcOffset.connect(slicerGain.gain);
@@ -455,104 +451,92 @@ document.addEventListener('DOMContentLoaded', async () => {
         const slot = currentlyEditingFxSlot;
         fxParamsContainer.innerHTML = '';
         if (!slot || slot.effectType === 'none') return;
-
+    
         const paramDefs = effectDefinitions[slot.effectType].params;
-
-        // Special handling for Delay
+    
         if (slot.effectType === 'delay') {
-            const timeControlContainer = document.createElement('div');
-            const rateControlContainer = document.createElement('div');
-
-            const updateVisibility = (syncMode) => {
-                timeControlContainer.style.display = syncMode === 'time' ? '' : 'none';
-                rateControlContainer.style.display = syncMode === 'bpm' ? '' : 'none';
+            const currentParams = slot.params;
+            
+            const createSlider = (paramKey, def) => {
+                const val = currentParams[paramKey] ?? def.value;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'fx-param-control';
+                wrapper.innerHTML = `
+                    <label>${def.label}</label>
+                    <div class="slider-wrapper">
+                        <input type="range" min="${def.min}" max="${def.max}" step="${def.step}" value="${val}" data-param-key="${paramKey}">
+                        <span>${val}</span>
+                    </div>
+                `;
+                const slider = wrapper.querySelector('input');
+                const valueDisplay = wrapper.querySelector('span');
+                slider.oninput = () => { valueDisplay.textContent = slider.value; updateSliderFill(slider); };
+                updateSliderFill(slider);
+                return wrapper;
             };
-
-            for (const paramKey in paramDefs) {
-                const paramDef = paramDefs[paramKey];
-                const currentValue = slot.params[paramKey] ?? paramDef.value;
-                const controlWrapper = document.createElement('div');
-                controlWrapper.className = 'fx-param-control';
-                const label = document.createElement('label');
-                label.textContent = paramDef.label;
-                controlWrapper.appendChild(label);
-
-                if (paramDef.type === 'toggle') { // Custom type for syncMode
-                    const toggleWrapper = document.createElement('div');
-                    toggleWrapper.className = 'fx-param-toggle';
-                    toggleWrapper.innerHTML = `
-                        <button data-value="time" class="${currentValue === 'time' ? 'active' : ''}">Time</button>
-                        <button data-value="bpm" class="${currentValue === 'bpm' ? 'active' : ''}">BPM</button>
-                    `;
-                    toggleWrapper.dataset.paramKey = paramKey;
-                    toggleWrapper.addEventListener('click', (e) => {
-                        if (e.target.tagName === 'BUTTON') {
-                            const newMode = e.target.dataset.value;
-                            toggleWrapper.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
-                            e.target.classList.add('active');
-                            updateVisibility(newMode);
-                        }
-                    });
-                    controlWrapper.appendChild(toggleWrapper);
-                    fxParamsContainer.appendChild(controlWrapper);
-                } else if (paramKey === 'time') {
-                    // Slider for Time
-                    const sliderWrapper = document.createElement('div');
-                    sliderWrapper.className = 'slider-wrapper';
-                    sliderWrapper.innerHTML = `<input type="range" min="${paramDef.min}" max="${paramDef.max}" step="${paramDef.step}" value="${currentValue}" data-param-key="time"><span>${currentValue}</span>`;
-                    const slider = sliderWrapper.querySelector('input');
-                    const valueDisplay = sliderWrapper.querySelector('span');
-                    slider.oninput = () => { valueDisplay.textContent = slider.value; updateSliderFill(slider); };
-                    controlWrapper.appendChild(sliderWrapper);
-                    timeControlContainer.appendChild(controlWrapper);
-                    updateSliderFill(slider);
-                } else if (paramKey === 'rate') {
-                    // Buttons for Rate
-                    const buttonGroup = document.createElement('div');
-                    buttonGroup.className = 'button-selector-group fx-param-buttons';
-                    buttonGroup.dataset.paramKey = 'rate';
-                    paramDef.options.forEach(opt => {
-                        const button = document.createElement('button');
-                        button.type = 'button';
-                        button.dataset.value = opt.value;
-                        button.textContent = opt.label;
-                        if (opt.value == currentValue) button.classList.add('active');
-                        button.onclick = () => {
-                            buttonGroup.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
-                            button.classList.add('active');
-                        };
-                        buttonGroup.appendChild(button);
-                    });
-                    controlWrapper.appendChild(buttonGroup);
-                    rateControlContainer.appendChild(controlWrapper);
-                } else { // For other params like mix, feedback
-                    // Generic range slider
-                    const sliderWrapper = document.createElement('div');
-                    sliderWrapper.className = 'slider-wrapper';
-                    sliderWrapper.innerHTML = `<input type="range" min="${paramDef.min}" max="${paramDef.max}" step="${paramDef.step}" value="${currentValue}" data-param-key="${paramKey}"><span>${currentValue}</span>`;
-                    const slider = sliderWrapper.querySelector('input');
-                    const valueDisplay = sliderWrapper.querySelector('span');
-                    slider.oninput = () => { valueDisplay.textContent = slider.value; updateSliderFill(slider); };
-                    controlWrapper.appendChild(sliderWrapper);
-                    fxParamsContainer.appendChild(controlWrapper);
-                    updateSliderFill(slider);
-                }
-            }
-            fxParamsContainer.appendChild(timeControlContainer);
-            fxParamsContainer.appendChild(rateControlContainer);
-            updateVisibility(slot.params.syncMode || 'time');
+    
+            fxParamsContainer.appendChild(createSlider('mix', paramDefs.mix));
+            fxParamsContainer.appendChild(createSlider('feedback', paramDefs.feedback));
+    
+            const switchWrapper = document.createElement('div');
+            switchWrapper.className = 'fx-param-control';
+            switchWrapper.innerHTML = `<label><input type="checkbox" data-param-key="syncMode"> Time (秒数で指定)</label>`;
+            const switchInput = switchWrapper.querySelector('input');
+            fxParamsContainer.appendChild(switchWrapper);
+    
+            const timeSliderContainer = document.createElement('div');
+            timeSliderContainer.dataset.syncControl = 'time';
+            timeSliderContainer.appendChild(createSlider('time', paramDefs.time));
+            fxParamsContainer.appendChild(timeSliderContainer);
+    
+            const rateButtonsContainer = document.createElement('div');
+            rateButtonsContainer.dataset.syncControl = 'bpm';
+            const rateDef = paramDefs.rate;
+            const rateVal = currentParams.rate ?? rateDef.value;
+            const rateControlWrapper = document.createElement('div');
+            rateControlWrapper.className = 'fx-param-control';
+            rateControlWrapper.innerHTML = `<label>${rateDef.label}</label>`;
+            const buttonGroup = document.createElement('div');
+            buttonGroup.className = 'button-selector-group fx-param-buttons';
+            buttonGroup.dataset.paramKey = 'rate';
+            rateDef.options.forEach(opt => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.dataset.value = opt.value;
+                button.textContent = opt.label;
+                if (opt.value == rateVal) button.classList.add('active');
+                button.onclick = () => {
+                    buttonGroup.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                };
+                buttonGroup.appendChild(button);
+            });
+            rateControlWrapper.appendChild(buttonGroup);
+            rateButtonsContainer.appendChild(rateControlWrapper);
+            fxParamsContainer.appendChild(rateButtonsContainer);
+    
+            const updateVisibility = () => {
+                const isTimeMode = switchInput.checked;
+                timeSliderContainer.style.display = isTimeMode ? '' : 'none';
+                rateButtonsContainer.style.display = isTimeMode ? 'none' : '';
+            };
+            switchInput.onchange = updateVisibility;
+    
+            switchInput.checked = currentParams.syncMode === 'time';
+            updateVisibility();
+    
         } else { // Original behavior for other effects
             for (const paramKey in paramDefs) {
                 const paramDef = paramDefs[paramKey];
                 const currentValue = slot.params[paramKey] ?? paramDef.value;
-
+    
                 const controlWrapper = document.createElement('div');
                 controlWrapper.className = 'fx-param-control';
                 
                 const label = document.createElement('label');
                 label.textContent = paramDef.label;
                 controlWrapper.appendChild(label);
-
+    
                 if (paramDef.type === 'range') {
                     const sliderWrapper = document.createElement('div');
                     sliderWrapper.className = 'slider-wrapper';
@@ -595,20 +579,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function saveFxSlotChanges() {
         const slot = currentlyEditingFxSlot;
         if (!slot) return;
-
-        // Update params from modal inputs
+    
         if (slot.effectType === 'delay') {
-            const syncToggle = fxParamsContainer.querySelector('.fx-param-toggle');
-            const syncMode = syncToggle.querySelector('button.active').dataset.value;
-            slot.params.syncMode = syncMode;
-
-            // Always save mix and feedback
+            const switchInput = fxParamsContainer.querySelector('input[data-param-key="syncMode"]');
+            slot.params.syncMode = switchInput.checked ? 'time' : 'bpm';
+    
             slot.params.mix = parseFloat(fxParamsContainer.querySelector('input[data-param-key="mix"]').value);
             slot.params.feedback = parseFloat(fxParamsContainer.querySelector('input[data-param-key="feedback"]').value);
-
-            if (syncMode === 'time') {
+    
+            if (slot.params.syncMode === 'time') {
                 slot.params.time = parseFloat(fxParamsContainer.querySelector('input[data-param-key="time"]').value);
-            } else { // syncMode === 'bpm'
+            } else { // 'bpm'
                 const rateGroup = fxParamsContainer.querySelector('.button-selector-group[data-param-key="rate"]');
                 const activeButton = rateGroup.querySelector('button.active');
                 if (activeButton) {
@@ -616,7 +597,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         } else {
-             fxParamsContainer.querySelectorAll('input[type="range"]').forEach(slider => {
+            fxParamsContainer.querySelectorAll('input[type="range"]').forEach(slider => {
                 slot.params[slider.dataset.paramKey] = parseFloat(slider.value);
             });
             fxParamsContainer.querySelectorAll('.button-selector-group').forEach(group => {
@@ -627,8 +608,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         }
-
-        // If effect type changed, we may need to create a new audio node
+    
         if (!slot.node || slot.node.type !== slot.effectType) {
             if (effectDefinitions[slot.effectType].createNode) {
                 slot.node = await effectDefinitions[slot.effectType].createNode(audioCtx);
@@ -658,13 +638,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             let delayTimeValue;
             if (params.syncMode === 'bpm') {
                 const bpm = parseFloat(bpmInput.value);
-                // Delay time is the period, which is 1 / frequency.
-                // frequencyInHz = (bpm / 60) * params.rate
                 delayTimeValue = 60 / (bpm * params.rate);
             } else {
                 delayTimeValue = params.time;
             }
-            // Clamp delayTime to avoid errors with createDelay max value
             delayTimeValue = Math.max(0.001, Math.min(delayTimeValue, 5.0));
             slot.node.delay.delayTime.setValueAtTime(delayTimeValue, now);
             slot.node.feedback.gain.setValueAtTime(params.feedback, now);
