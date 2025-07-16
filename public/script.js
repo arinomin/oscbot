@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             bypassNode: null, 
             isActive: false, 
             effectType: 'delay', 
-            params: { mix: 0.5, time: 0.25, feedback: 0.4 } 
+            params: { mix: 0.5, time: 0.25, feedback: 0.4, syncMode: 'time', rate: 4 } 
         },
         { 
             id: 'C', 
@@ -172,10 +172,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: 'ディレイ',
             params: {
                 mix: { label: 'Mix', type: 'range', min: 0, max: 1, step: 0.01, value: 0.5 },
-                time: { label: 'Time', type: 'range', min: 0.01, max: 1, step: 0.01, value: 0.25 },
-                feedback: { label: 'Feedback', type: 'range', min: 0, max: 0.9, step: 0.01, value: 0.4 }
+                feedback: { label: 'Feedback', type: 'range', min: 0, max: 0.9, step: 0.01, value: 0.4 },
+                syncMode: { label: 'BPM Sync', type: 'toggle', value: 'time' }, // 'time' or 'bpm'
+                time: { label: 'Time (sec)', type: 'range', min: 0.01, max: 2, step: 0.01, value: 0.25 },
+                rate: {
+                    label: 'Rate',
+                    type: 'buttons',
+                    value: 4, // Default to 1/16
+                    options: [
+                        { value: 0.5, label: '1/2' },
+                        { value: 0.75, label: '1/2 3' },
+                        { value: 1, label: '1/4' },
+                        { value: 1 / 1.5, label: '1/4.'},
+                        { value: 1.5, label: '1/4 3' },
+                        { value: 2, label: '1/8' },
+                        { value: 2 / 1.5, label: '1/8.'},
+                        { value: 3, label: '1/8 3' },
+                        { value: 4, label: '1/16' },
+                    ]
+                }
             },
-            createNode: (ctx) => ({ delay: ctx.createDelay(1.0), feedback: ctx.createGain(), wetGain: ctx.createGain(), dryGain: ctx.createGain() })
+            createNode: (ctx) => ({ delay: ctx.createDelay(5.0), feedback: ctx.createGain(), wetGain: ctx.createGain(), dryGain: ctx.createGain() })
         },
         'slicer': {
             name: 'スライサー',
@@ -312,11 +329,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadDataButton.onclick = openLoadPresetModal;
         bpmAdjustButtons.forEach(button => button.addEventListener('click', () => {
             adjustBpm(parseInt(button.dataset.step));
-            updateActiveSlicersBpm();
+            updateActiveBpmSyncFx();
         }));
         bpmInput.addEventListener('change', () => {
             bpmInput.value = Math.max(20, Math.min(300, parseInt(bpmInput.value) || 120));
-            updateActiveSlicersBpm();
+            updateActiveBpmSyncFx();
         });
         setupDragAndDropListeners();
         setupModalListeners(editModal, closeEditModal);
@@ -441,52 +458,137 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const paramDefs = effectDefinitions[slot.effectType].params;
 
-        for (const paramKey in paramDefs) {
-            const paramDef = paramDefs[paramKey];
-            const currentValue = slot.params[paramKey] ?? paramDef.value;
+        // Special handling for Delay
+        if (slot.effectType === 'delay') {
+            const timeControlContainer = document.createElement('div');
+            const rateControlContainer = document.createElement('div');
 
-            const controlWrapper = document.createElement('div');
-            controlWrapper.className = 'fx-param-control';
-            
-            const label = document.createElement('label');
-            label.textContent = paramDef.label;
-            controlWrapper.appendChild(label);
+            const updateVisibility = (syncMode) => {
+                timeControlContainer.style.display = syncMode === 'time' ? '' : 'none';
+                rateControlContainer.style.display = syncMode === 'bpm' ? '' : 'none';
+            };
 
-            if (paramDef.type === 'range') {
-                const sliderWrapper = document.createElement('div');
-                sliderWrapper.className = 'slider-wrapper';
-                sliderWrapper.innerHTML = `
-                    <input type="range" min="${paramDef.min}" max="${paramDef.max}" step="${paramDef.step}" value="${currentValue}" data-param-key="${paramKey}">
-                    <span>${currentValue}</span>`;
-                const slider = sliderWrapper.querySelector('input[type="range"]');
-                const valueDisplay = sliderWrapper.querySelector('span');
-                slider.oninput = () => {
-                    valueDisplay.textContent = slider.value;
+            for (const paramKey in paramDefs) {
+                const paramDef = paramDefs[paramKey];
+                const currentValue = slot.params[paramKey] ?? paramDef.value;
+                const controlWrapper = document.createElement('div');
+                controlWrapper.className = 'fx-param-control';
+                const label = document.createElement('label');
+                label.textContent = paramDef.label;
+                controlWrapper.appendChild(label);
+
+                if (paramDef.type === 'toggle') { // Custom type for syncMode
+                    const toggleWrapper = document.createElement('div');
+                    toggleWrapper.className = 'fx-param-toggle';
+                    toggleWrapper.innerHTML = `
+                        <button data-value="time" class="${currentValue === 'time' ? 'active' : ''}">Time</button>
+                        <button data-value="bpm" class="${currentValue === 'bpm' ? 'active' : ''}">BPM</button>
+                    `;
+                    toggleWrapper.dataset.paramKey = paramKey;
+                    toggleWrapper.addEventListener('click', (e) => {
+                        if (e.target.tagName === 'BUTTON') {
+                            const newMode = e.target.dataset.value;
+                            toggleWrapper.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                            e.target.classList.add('active');
+                            updateVisibility(newMode);
+                        }
+                    });
+                    controlWrapper.appendChild(toggleWrapper);
+                    fxParamsContainer.appendChild(controlWrapper);
+                } else if (paramKey === 'time') {
+                    // Slider for Time
+                    const sliderWrapper = document.createElement('div');
+                    sliderWrapper.className = 'slider-wrapper';
+                    sliderWrapper.innerHTML = `<input type="range" min="${paramDef.min}" max="${paramDef.max}" step="${paramDef.step}" value="${currentValue}" data-param-key="time"><span>${currentValue}</span>`;
+                    const slider = sliderWrapper.querySelector('input');
+                    const valueDisplay = sliderWrapper.querySelector('span');
+                    slider.oninput = () => { valueDisplay.textContent = slider.value; updateSliderFill(slider); };
+                    controlWrapper.appendChild(sliderWrapper);
+                    timeControlContainer.appendChild(controlWrapper);
                     updateSliderFill(slider);
-                };
-                controlWrapper.appendChild(sliderWrapper);
-                updateSliderFill(slider);
-            } else if (paramDef.type === 'buttons') {
-                const buttonGroup = document.createElement('div');
-                buttonGroup.className = 'button-selector-group fx-param-buttons';
-                buttonGroup.dataset.paramKey = paramKey;
-                paramDef.options.forEach(opt => {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.dataset.value = opt.value;
-                    button.textContent = opt.label;
-                    if (opt.value == currentValue) {
-                        button.classList.add('active');
-                    }
-                    button.onclick = () => {
-                        buttonGroup.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
-                        button.classList.add('active');
-                    };
-                    buttonGroup.appendChild(button);
-                });
-                controlWrapper.appendChild(buttonGroup);
+                } else if (paramKey === 'rate') {
+                    // Buttons for Rate
+                    const buttonGroup = document.createElement('div');
+                    buttonGroup.className = 'button-selector-group fx-param-buttons';
+                    buttonGroup.dataset.paramKey = 'rate';
+                    paramDef.options.forEach(opt => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.dataset.value = opt.value;
+                        button.textContent = opt.label;
+                        if (opt.value == currentValue) button.classList.add('active');
+                        button.onclick = () => {
+                            buttonGroup.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                            button.classList.add('active');
+                        };
+                        buttonGroup.appendChild(button);
+                    });
+                    controlWrapper.appendChild(buttonGroup);
+                    rateControlContainer.appendChild(controlWrapper);
+                } else { // For other params like mix, feedback
+                    // Generic range slider
+                    const sliderWrapper = document.createElement('div');
+                    sliderWrapper.className = 'slider-wrapper';
+                    sliderWrapper.innerHTML = `<input type="range" min="${paramDef.min}" max="${paramDef.max}" step="${paramDef.step}" value="${currentValue}" data-param-key="${paramKey}"><span>${currentValue}</span>`;
+                    const slider = sliderWrapper.querySelector('input');
+                    const valueDisplay = sliderWrapper.querySelector('span');
+                    slider.oninput = () => { valueDisplay.textContent = slider.value; updateSliderFill(slider); };
+                    controlWrapper.appendChild(sliderWrapper);
+                    fxParamsContainer.appendChild(controlWrapper);
+                    updateSliderFill(slider);
+                }
             }
-            fxParamsContainer.appendChild(controlWrapper);
+            fxParamsContainer.appendChild(timeControlContainer);
+            fxParamsContainer.appendChild(rateControlContainer);
+            updateVisibility(slot.params.syncMode || 'time');
+        } else { // Original behavior for other effects
+            for (const paramKey in paramDefs) {
+                const paramDef = paramDefs[paramKey];
+                const currentValue = slot.params[paramKey] ?? paramDef.value;
+
+                const controlWrapper = document.createElement('div');
+                controlWrapper.className = 'fx-param-control';
+                
+                const label = document.createElement('label');
+                label.textContent = paramDef.label;
+                controlWrapper.appendChild(label);
+
+                if (paramDef.type === 'range') {
+                    const sliderWrapper = document.createElement('div');
+                    sliderWrapper.className = 'slider-wrapper';
+                    sliderWrapper.innerHTML = `
+                        <input type="range" min="${paramDef.min}" max="${paramDef.max}" step="${paramDef.step}" value="${currentValue}" data-param-key="${paramKey}">
+                        <span>${currentValue}</span>`;
+                    const slider = sliderWrapper.querySelector('input[type="range"]');
+                    const valueDisplay = sliderWrapper.querySelector('span');
+                    slider.oninput = () => {
+                        valueDisplay.textContent = slider.value;
+                        updateSliderFill(slider);
+                    };
+                    controlWrapper.appendChild(sliderWrapper);
+                    updateSliderFill(slider);
+                } else if (paramDef.type === 'buttons') {
+                    const buttonGroup = document.createElement('div');
+                    buttonGroup.className = 'button-selector-group fx-param-buttons';
+                    buttonGroup.dataset.paramKey = paramKey;
+                    paramDef.options.forEach(opt => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.dataset.value = opt.value;
+                        button.textContent = opt.label;
+                        if (opt.value == currentValue) {
+                            button.classList.add('active');
+                        }
+                        button.onclick = () => {
+                            buttonGroup.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                            button.classList.add('active');
+                        };
+                        buttonGroup.appendChild(button);
+                    });
+                    controlWrapper.appendChild(buttonGroup);
+                }
+                fxParamsContainer.appendChild(controlWrapper);
+            }
         }
     }
 
@@ -495,16 +597,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!slot) return;
 
         // Update params from modal inputs
-        fxParamsContainer.querySelectorAll('input[type="range"]').forEach(slider => {
-            slot.params[slider.dataset.paramKey] = parseFloat(slider.value);
-        });
-        fxParamsContainer.querySelectorAll('.button-selector-group').forEach(group => {
-            const paramKey = group.dataset.paramKey;
-            const activeButton = group.querySelector('button.active');
-            if (activeButton) {
-                slot.params[paramKey] = parseFloat(activeButton.dataset.value);
+        if (slot.effectType === 'delay') {
+            const syncToggle = fxParamsContainer.querySelector('.fx-param-toggle');
+            const syncMode = syncToggle.querySelector('button.active').dataset.value;
+            slot.params.syncMode = syncMode;
+
+            // Always save mix and feedback
+            slot.params.mix = parseFloat(fxParamsContainer.querySelector('input[data-param-key="mix"]').value);
+            slot.params.feedback = parseFloat(fxParamsContainer.querySelector('input[data-param-key="feedback"]').value);
+
+            if (syncMode === 'time') {
+                slot.params.time = parseFloat(fxParamsContainer.querySelector('input[data-param-key="time"]').value);
+            } else { // syncMode === 'bpm'
+                const rateGroup = fxParamsContainer.querySelector('.button-selector-group[data-param-key="rate"]');
+                const activeButton = rateGroup.querySelector('button.active');
+                if (activeButton) {
+                    slot.params.rate = parseFloat(activeButton.dataset.value);
+                }
             }
-        });
+        } else {
+             fxParamsContainer.querySelectorAll('input[type="range"]').forEach(slider => {
+                slot.params[slider.dataset.paramKey] = parseFloat(slider.value);
+            });
+            fxParamsContainer.querySelectorAll('.button-selector-group').forEach(group => {
+                const paramKey = group.dataset.paramKey;
+                const activeButton = group.querySelector('button.active');
+                if (activeButton) {
+                    slot.params[paramKey] = parseFloat(activeButton.dataset.value);
+                }
+            });
+        }
 
         // If effect type changed, we may need to create a new audio node
         if (!slot.node || slot.node.type !== slot.effectType) {
@@ -532,7 +654,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (slot.effectType === 'delay') {
             slot.node.wetGain.gain.setValueAtTime(params.mix, now);
             slot.node.dryGain.gain.setValueAtTime(1 - params.mix, now);
-            slot.node.delay.delayTime.setValueAtTime(params.time, now);
+            
+            let delayTimeValue;
+            if (params.syncMode === 'bpm') {
+                const bpm = parseFloat(bpmInput.value);
+                // Delay time is the period, which is 1 / frequency.
+                // frequencyInHz = (bpm / 60) * params.rate
+                delayTimeValue = 60 / (bpm * params.rate);
+            } else {
+                delayTimeValue = params.time;
+            }
+            // Clamp delayTime to avoid errors with createDelay max value
+            delayTimeValue = Math.max(0.001, Math.min(delayTimeValue, 5.0));
+            slot.node.delay.delayTime.setValueAtTime(delayTimeValue, now);
             slot.node.feedback.gain.setValueAtTime(params.feedback, now);
         } else if (slot.effectType === 'slicer') {
             const { lfo, lfoGain, dcOffset } = slot.node;
@@ -546,9 +680,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function updateActiveSlicersBpm() {
-        const activeSlicers = fxSlots.filter(s => s.isActive && s.effectType === 'slicer');
-        activeSlicers.forEach(applyFxParams);
+    function updateActiveBpmSyncFx() {
+        const activeBpmFx = fxSlots.filter(s => s.isActive && 
+            (s.effectType === 'slicer' || (s.effectType === 'delay' && s.params.syncMode === 'bpm'))
+        );
+        activeBpmFx.forEach(applyFxParams);
     }
 
     function setupKeyboardShortcuts() {
@@ -887,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const octaveMax = parseInt(getActiveValue(document.getElementById('rg-octave-max-buttons')));
         const stepsToGen = parseInt(getActiveValue(document.getElementById('rg-steps-buttons')));
         if (!rootNoteName || !octaveMin || !octaveMax || !stepsToGen) {
-            showToast("ランダム生成の��項目を選択してください。", "error"); return;
+            showToast("ランダム生成の全項目を選択してください。", "error"); return;
         }
         if (octaveMin > octaveMax) {
             showToast("最小オクターブは最大以下にしてください。", "error"); return;
@@ -1179,7 +1315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
             const doc = await docRef.get();
             if (!doc.exists) {
-                showToast('編集対象のプリセットが見つ���りません。', 'error');
+                showToast('編集対象のプリセットが見つかりません。', 'error');
                 return;
             }
             const preset = doc.data();
