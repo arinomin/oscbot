@@ -120,9 +120,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const masterGain = audioCtx.createGain();
 
     const fxSlots = [
-        { id: 'B', name: 'FX B', node: null, bypassNode: null, isActive: false, effectType: 'none', params: {} },
-        { id: 'C', name: 'FX C', node: null, bypassNode: null, isActive: false, effectType: 'none', params: {} },
-        { id: 'D', name: 'FX D', node: null, bypassNode: null, isActive: false, effectType: 'none', params: {} }
+        { 
+            id: 'B', 
+            name: 'FX B', 
+            node: null, 
+            bypassNode: null, 
+            isActive: false, 
+            effectType: 'delay', 
+            params: { mix: 0.5, time: 0.25, feedback: 0.4 } 
+        },
+        { 
+            id: 'C', 
+            name: 'FX C', 
+            node: null, 
+            bypassNode: null, 
+            isActive: false, 
+            effectType: 'reverb', 
+            params: { mix: 0.5 } 
+        },
+        { 
+            id: 'D', 
+            name: 'FX D', 
+            node: null, 
+            bypassNode: null, 
+            isActive: false, 
+            effectType: 'none', 
+            params: {} 
+        }
     ];
 
     const effectDefinitions = {
@@ -207,12 +231,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function init() {
         await setupAudioRouting();
+        await initializeFxNodes();
         createPlaybackBlocks();
         setupUIComponents();
         setupEventListeners();
         initAuth();
         loadLocalBackup();
         document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
+    }
+
+    async function initializeFxNodes() {
+        for (const slot of fxSlots) {
+            if (slot.effectType !== 'none') {
+                slot.node = await effectDefinitions[slot.effectType].createNode(audioCtx);
+                slot.node.type = slot.effectType;
+                applyFxParams(slot);
+            }
+        }
+        updateAllFxConnections();
     }
 
     async function setupAudioRouting() {
