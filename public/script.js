@@ -479,8 +479,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             fxParamsContainer.appendChild(createSlider('feedback', paramDefs.feedback));
     
             const switchWrapper = document.createElement('div');
-            switchWrapper.className = 'fx-param-control';
-            switchWrapper.innerHTML = `<label><input type="checkbox" data-param-key="syncMode"> Time (秒数で指定)</label>`;
+            switchWrapper.className = 'fx-param-control toggle-switch-container';
+            switchWrapper.innerHTML = `
+                <span class="toggle-label">Time (秒数で指定)</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" data-param-key="syncMode">
+                    <span class="toggle-slider"></span>
+                </label>
+            `;
             const switchInput = switchWrapper.querySelector('input');
             fxParamsContainer.appendChild(switchWrapper);
     

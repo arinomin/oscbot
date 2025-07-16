@@ -1010,19 +1010,24 @@ input[type="range"]:disabled {
 }
 
 /* --- Toggle Switch --- */
-.switch {
+.toggle-switch-container {
+    flex-direction: row !important;
+    justify-content: space-between;
+    align-items: center;
+}
+.toggle-switch {
   position: relative;
   display: inline-block;
   width: 44px;
   height: 24px;
   flex-shrink: 0;
 }
-.switch input {
+.toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
-.slider {
+.toggle-slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -1031,8 +1036,9 @@ input[type="range"]:disabled {
   bottom: 0;
   background-color: var(--secondary-bg);
   transition: .4s;
+  border-radius: 24px;
 }
-.slider:before {
+.toggle-slider:before {
   position: absolute;
   content: "";
   height: 18px;
@@ -1041,19 +1047,14 @@ input[type="range"]:disabled {
   bottom: 3px;
   background-color: white;
   transition: .4s;
+  border-radius: 50%;
 }
-input:checked + .slider {
+input:checked + .toggle-slider {
   background: var(--accent-gradient);
 }
-input:focus + .slider {
+input:focus + .toggle-slider {
   box-shadow: 0 0 1px var(--accent-color-end);
 }
-input:checked + .slider:before {
+input:checked + .toggle-slider:before {
   transform: translateX(20px);
-}
-.slider.round {
-  border-radius: 24px;
-}
-.slider.round:before {
-  border-radius: 50%;
 }
