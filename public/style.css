@@ -75,9 +75,11 @@ body {
 }
 
 #preset-status-container {
-    text-align: left;
-    padding: 2px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-top: 4px;
+    position: relative;
 }
 
 #current-preset-status {
@@ -86,6 +88,54 @@ body {
     background-color: rgba(0,0,0,0.2);
     padding: 3px 8px;
     border-radius: 12px;
+}
+
+.icon-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+.icon-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.popup-menu {
+    position: absolute;
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 1001;
+    width: 180px;
+    overflow: hidden;
+}
+.popup-menu button {
+    display: block;
+    width: 100%;
+    padding: 12px 15px;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.popup-menu button:hover {
+    background-color: var(--primary-bg);
+}
+.popup-menu hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 5px 0;
 }
 
 .auth-section {

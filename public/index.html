@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 
@@ -30,6 +31,7 @@
                 <h1>MOBILE OSC BOT</h1>
                 <div id="preset-status-container" style="display: none;">
                     <span id="current-preset-status"></span>
+                    <button id="preset-menu-button" class="icon-button" style="display: none;"><i class="fas fa-ellipsis-v"></i></button>
                 </div>
             </div>
             <div class="auth-section">
@@ -105,6 +107,29 @@
             </div>
         </footer>
 
+    </div>
+
+    <!-- Pop-up Menu for Preset Actions -->
+    <div id="preset-action-menu" class="popup-menu" style="display: none;">
+        <button data-action="rename">名前を変更</button>
+        <button data-action="duplicate">複製を作成</button>
+        <hr>
+        <button data-action="new">新規作成</button>
+    </div>
+
+    <!-- Rename Preset Modal -->
+    <div id="rename-preset-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h3>プリセット名の変更</h3>
+            <div class="modal-controls">
+                <div>
+                    <label for="new-preset-name">新しいプリセット名:</label>
+                    <input type="text" id="new-preset-name" required>
+                </div>
+                <button id="rename-preset-save-button" class="modal-main-action-button">変更を保存</button>
+            </div>
+        </div>
     </div>
 
     <div id="edit-modal" class="modal">
