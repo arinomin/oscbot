@@ -163,13 +163,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     value: 4, // Default to 1/16
                     options: [
                         { value: 1, label: '1/4' },
-                        { value: 1.5, label: '1/4 (3)' },
+                        { value: 1.5, label: '1/4 3' },
                         { value: 2, label: '1/8' },
                         { value: 2 / 1.5, label: '1/8.'},
-                        { value: 3, label: '1/8 (3)' },
+                        { value: 3, label: '1/8 3' },
                         { value: 4, label: '1/16' },
                         { value: 4 / 1.5, label: '1/16.'},
-                        { value: 6, label: '1/16 (3)' },
+                        { value: 6, label: '1/16 3' },
                         { value: 8, label: '1/32' },
                     ]
                 }
@@ -178,10 +178,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const slicerGain = ctx.createGain();
                 const lfo = ctx.createOscillator();
                 const lfoGain = ctx.createGain();
+                const dcOffset = ctx.createConstantSource();
+
                 lfo.type = 'square';
-                lfo.connect(lfoGain.gain);
+                slicerGain.gain.value = 0; // Start with 0 gain, modulated by LFO
+
+                // LFO (-1 to 1) -> lfoGain -> slicerGain.gain
+                // dcOffset (1) -> slicerGain.gain
+                // This makes the gain modulate between 0 and `depth`
+                lfo.connect(lfoGain);
+                lfoGain.connect(slicerGain.gain);
+                dcOffset.connect(slicerGain.gain);
+                
                 lfo.start();
-                return { slicerGain, lfo, lfoGain };
+                dcOffset.start();
+
+                return { slicerGain, lfo, lfoGain, dcOffset };
             }
         }
     };
@@ -228,8 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 delay.connect(wetGain).connect(slot.bypassNode);
                 delay.connect(feedback).connect(delay);
             } else if (slot.effectType === 'slicer') {
-                const { slicerGain, lfoGain } = slot.node;
-                lfoGain.connect(slicerGain.gain);
+                const { slicerGain } = slot.node;
                 previousNode.connect(slicerGain).connect(slot.bypassNode);
             }
         } else {
@@ -488,10 +499,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             slot.node.delay.delayTime.setValueAtTime(params.time, now);
             slot.node.feedback.gain.setValueAtTime(params.feedback, now);
         } else if (slot.effectType === 'slicer') {
+            const { lfo, lfoGain, dcOffset } = slot.node;
             const bpm = parseFloat(bpmInput.value);
             const frequencyInHz = (bpm / 60) * params.rate;
-            slot.node.lfo.frequency.setValueAtTime(frequencyInHz, now);
-            slot.node.lfoGain.gain.setValueAtTime(params.depth, now);
+            const depth = params.depth;
+
+            lfo.frequency.setValueAtTime(frequencyInHz, now);
+            lfoGain.gain.setValueAtTime(depth / 2, now);
+            dcOffset.offset.setValueAtTime(depth / 2, now);
         }
     }
 
