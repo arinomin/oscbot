@@ -47,23 +47,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toastContainer = document.getElementById('toast-container');
     const presetStatusContainer = document.getElementById('preset-status-container');
     const currentPresetStatus = document.getElementById('current-preset-status');
-
-    // Effects DOM Elements
-    const reverbSwitch = document.getElementById('reverb-switch');
-    const reverbMixSlider = document.getElementById('reverb-mix');
-    const delaySwitch = document.getElementById('delay-switch');
-    const delayMixSlider = document.getElementById('delay-mix');
-    const delaySettingsContainer = document.getElementById('delay-settings');
-    const delayTimeSlider = document.getElementById('delay-time');
-    const delayFeedbackSlider = document.getElementById('delay-feedback');
+    const fxSlotsContainer = document.getElementById('fx-slots-container');
+    const fxEditModal = document.getElementById('fx-edit-modal');
+    const fxModalTitle = document.getElementById('fx-modal-title');
+    const fxTypeSelect = document.getElementById('fx-type-select');
+    const fxParamsContainer = document.getElementById('fx-params-container');
+    const fxModalCompleteButton = document.getElementById('fx-modal-complete-button');
 
     const confirmationModal = document.getElementById('confirmation-modal');
     const confirmationModalMessage = document.getElementById('confirmation-modal-message');
     const confirmButton = document.getElementById('confirmation-modal-confirm-button');
     const cancelButton = document.getElementById('confirmation-modal-cancel-button');
     const alternativeButton = document.getElementById('confirmation-modal-alternative-button');
-
-    let currentOnConfirm = null;
 
     function updateSliderFill(slider) {
         if (!slider) return;
@@ -76,58 +71,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function showConfirmationModal(message, onConfirm, options = {}) {
         confirmationModalMessage.textContent = message;
-        
-        confirmButton.onclick = () => {
-            if (onConfirm) onConfirm();
-            closeConfirmationModal();
-        };
-
+        confirmButton.onclick = () => { if (onConfirm) onConfirm(); closeModalHelper(confirmationModal); };
         if (options.onAlternative) {
             alternativeButton.style.display = 'inline-block';
             alternativeButton.textContent = options.alternativeText || '選択肢';
-            alternativeButton.onclick = () => {
-                options.onAlternative();
-                closeConfirmationModal();
-            };
+            alternativeButton.onclick = () => { options.onAlternative(); closeModalHelper(confirmationModal); };
         } else {
             alternativeButton.style.display = 'none';
         }
-
         confirmButton.textContent = options.confirmText || 'OK';
         cancelButton.textContent = options.cancelText || 'キャンセル';
-
-        if (options.isDanger) {
-            confirmButton.classList.add('danger');
-        } else {
-            confirmButton.classList.remove('danger');
-        }
-
+        confirmButton.classList.toggle('danger', !!options.isDanger);
         openModal(confirmationModal);
     }
-
-    function closeConfirmationModal() {
-        closeModalHelper(confirmationModal);
-        alternativeButton.style.display = 'none';
-        alternativeButton.onclick = null;
-    }
+    cancelButton.onclick = () => closeModalHelper(confirmationModal);
+    setupModalListeners(confirmationModal, () => closeModalHelper(confirmationModal));
 
     function showLoginPromptModal() {
-        showConfirmationModal(
-            'この機能を利用するにはGoogleアカウントでのログインが必要です。',
-            () => {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider).catch(error => {
-                    if (error.code !== 'auth/popup-closed-by-user') {
-                        showToast(`ログインに失敗しました: ${error.message}`, 'error');
-                    }
-                });
-            },
-            { confirmText: 'Googleでログイン', cancelText: 'キャンセル' }
-        );
+        showConfirmationModal('この機能を利用するにはGoogleアカウントでのログインが必要です。', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(error => {
+                if (error.code !== 'auth/popup-closed-by-user') showToast(`ログインに失敗しました: ${error.message}`, 'error');
+            });
+        }, { confirmText: 'Googleでログイン', cancelText: 'キャンセル' });
     }
-
-    cancelButton.onclick = closeConfirmationModal;
-    setupModalListeners(confirmationModal, closeConfirmationModal);
 
     // Modals
     const editModal = document.getElementById('edit-modal');
@@ -148,32 +115,86 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentSequenceMax = 16;
     let currentNoteDuration = 1;
     let currentlyLoadedPresetDocId = null;
+    let currentlyEditingFxSlot = null;
 
-    // Audio Effects Nodes
-    const effects = {
-        masterGain: null,
-        reverb: { node: null, wetGain: null, dryGain: null },
-        delay: { node: null, wetGain: null, dryGain: null, feedback: null }
+    const masterGain = audioCtx.createGain();
+
+    const fxSlots = [
+        { id: 'B', name: 'FX B', node: null, bypassNode: null, isActive: false, effectType: 'none', params: {} },
+        { id: 'C', name: 'FX C', node: null, bypassNode: null, isActive: false, effectType: 'none', params: {} },
+        { id: 'D', name: 'FX D', node: null, bypassNode: null, isActive: false, effectType: 'none', params: {} }
+    ];
+
+    const effectDefinitions = {
+        'none': { name: 'エフェクトなし', params: {} },
+        'reverb': {
+            name: 'リバーブ',
+            params: { mix: { label: 'Mix', type: 'range', min: 0, max: 1, step: 0.01, value: 0.5 } },
+            createNode: async (ctx) => {
+                const convolver = ctx.createConvolver();
+                const wetGain = ctx.createGain();
+                const dryGain = ctx.createGain();
+                const sampleRate = ctx.sampleRate, length = sampleRate * 2, impulse = ctx.createBuffer(2, length, sampleRate);
+                const left = impulse.getChannelData(0), right = impulse.getChannelData(1);
+                for (let i = 0; i < length; i++) {
+                    left[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
+                    right[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
+                }
+                convolver.buffer = impulse;
+                return { convolver, wetGain, dryGain };
+            }
+        },
+        'delay': {
+            name: 'ディレイ',
+            params: {
+                mix: { label: 'Mix', type: 'range', min: 0, max: 1, step: 0.01, value: 0.5 },
+                time: { label: 'Time', type: 'range', min: 0.01, max: 1, step: 0.01, value: 0.25 },
+                feedback: { label: 'Feedback', type: 'range', min: 0, max: 0.9, step: 0.01, value: 0.4 }
+            },
+            createNode: (ctx) => ({ delay: ctx.createDelay(1.0), feedback: ctx.createGain(), wetGain: ctx.createGain(), dryGain: ctx.createGain() })
+        },
+        'slicer': {
+            name: 'スライサー',
+            params: {
+                depth: { label: 'Depth', type: 'range', min: 0, max: 1, step: 0.01, value: 1.0 },
+                rate: {
+                    label: 'Rate',
+                    type: 'buttons',
+                    value: 4, // Default to 1/16
+                    options: [
+                        { value: 1, label: '1/4' },
+                        { value: 1.5, label: '1/4 (3)' },
+                        { value: 2, label: '1/8' },
+                        { value: 2 / 1.5, label: '1/8.'},
+                        { value: 3, label: '1/8 (3)' },
+                        { value: 4, label: '1/16' },
+                        { value: 4 / 1.5, label: '1/16.'},
+                        { value: 6, label: '1/16 (3)' },
+                        { value: 8, label: '1/32' },
+                    ]
+                }
+            },
+            createNode: (ctx) => {
+                const slicerGain = ctx.createGain();
+                const lfo = ctx.createOscillator();
+                const lfoGain = ctx.createGain();
+                lfo.type = 'square';
+                lfo.connect(lfoGain.gain);
+                lfo.start();
+                return { slicerGain, lfo, lfoGain };
+            }
+        }
     };
 
     const noteOffsets = { 'C': 0, 'C♯': 1, 'D♭': 1, 'D': 2, 'D♯': 3, 'E♭': 3, 'E': 4, 'F': 5, 'F♯': 6, 'G♭': 6, 'G': 7, 'G♯': 8, 'A♭': 8, 'A': 9, 'A♯': 10, 'B♭': 10, 'B': 11 };
     const displayNotes = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
     const octaves = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     const waveforms = { 'sine': '正弦波', 'square': '矩形波', 'sawtooth': 'ノコギリ波', 'triangle': '三角波' };
-    const noteDurations = [
-        { value: 0.25, label: "16分" }, { value: 1 / 3, label: "1拍3連" }, { value: 0.5, label: "8分" },
-        { value: 2 / 3, label: "2拍3連" }, { value: 1, label: "4分" }, { value: 2, label: "2分" }, { value: 4, label: "全音符" }
-    ];
-    const chordTypes = {
-        'major': { name: 'メジャー', intervals: [0, 4, 7] }, 'minor': { name: 'マイナー', intervals: [0, 3, 7] },
-        'dominant7th': { name: 'ドミナント7th', intervals: [0, 4, 7, 10] }, 'major7th': { name: 'メジャー7th', intervals: [0, 4, 7, 11] },
-        'minor7th': { name: 'マイナー7th', intervals: [0, 3, 7, 10] }, 'diminished': { name: 'ディミニッシュ', intervals: [0, 3, 6] },
-        'augmented': { name: 'オーギュメント', intervals: [0, 4, 8] }, 'sus4': { name: 'サスフォー', intervals: [0, 5, 7] },
-        'majorPentatonic': { name: '���ジャーペンタ', intervals: [0, 2, 4, 7, 9] }, 'minorPentatonic': { name: 'マイナーペンタ', intervals: [0, 3, 5, 7, 10] },
-    };
+    const noteDurations = [{ value: 0.25, label: "16分" }, { value: 1 / 3, label: "1拍3連" }, { value: 0.5, label: "8分" }, { value: 2 / 3, label: "2拍3連" }, { value: 1, label: "4分" }, { value: 2, label: "2分" }, { value: 4, label: "全音符" }];
+    const chordTypes = { 'major': { name: 'メジャー', intervals: [0, 4, 7] }, 'minor': { name: 'マイナー', intervals: [0, 3, 7] }, 'dominant7th': { name: 'ドミナント7th', intervals: [0, 4, 7, 10] }, 'major7th': { name: 'メジャー7th', intervals: [0, 4, 7, 11] }, 'minor7th': { name: 'マイナー7th', intervals: [0, 3, 7, 10] }, 'diminished': { name: 'ディミニッシュ', intervals: [0, 3, 6] }, 'augmented': { name: 'オーギュメント', intervals: [0, 4, 8] }, 'sus4': { name: 'サスフォー', intervals: [0, 5, 7] }, 'majorPentatonic': { name: 'メジャーペンタ', intervals: [0, 2, 4, 7, 9] }, 'minorPentatonic': { name: 'マイナーペンタ', intervals: [0, 3, 5, 7, 10] } };
 
     async function init() {
-        await setupAudioEffects();
+        await setupAudioRouting();
         createPlaybackBlocks();
         setupUIComponents();
         setupEventListeners();
@@ -182,53 +203,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
     }
 
-    async function setupAudioEffects() {
-        effects.masterGain = audioCtx.createGain();
-        const destination = audioCtx.createGain();
-        destination.connect(audioCtx.destination);
-
-        // --- Reverb Setup ---
-        effects.reverb.node = audioCtx.createConvolver();
-        effects.reverb.wetGain = audioCtx.createGain();
-        effects.reverb.dryGain = audioCtx.createGain();
-        effects.reverb.node.buffer = await createReverbIR();
-        effects.masterGain.connect(effects.reverb.dryGain);
-        effects.masterGain.connect(effects.reverb.node).connect(effects.reverb.wetGain);
-        effects.reverb.dryGain.connect(destination);
-        effects.reverb.wetGain.connect(destination);
-
-        // --- Delay Setup ---
-        effects.delay.node = audioCtx.createDelay(1.0);
-        effects.delay.wetGain = audioCtx.createGain();
-        effects.delay.dryGain = audioCtx.createGain();
-        effects.delay.feedback = audioCtx.createGain();
-        effects.reverb.wetGain.connect(effects.delay.dryGain);
-        effects.reverb.dryGain.connect(effects.delay.dryGain);
-        effects.delay.dryGain.connect(destination);
-        effects.delay.dryGain.connect(effects.delay.node);
-        effects.delay.node.connect(effects.delay.feedback);
-        effects.delay.feedback.connect(effects.delay.node);
-        effects.delay.node.connect(effects.delay.wetGain);
-        effects.delay.wetGain.connect(destination);
-
-        // Initial gain values
-        effects.reverb.wetGain.gain.value = 0;
-        effects.delay.wetGain.gain.value = 0;
-        effects.delay.node.delayTime.value = parseFloat(delayTimeSlider.value);
-        effects.delay.feedback.gain.value = parseFloat(delayFeedbackSlider.value);
+    async function setupAudioRouting() {
+        let currentNode = masterGain;
+        for (const slot of fxSlots) {
+            slot.bypassNode = audioCtx.createGain();
+            currentNode.connect(slot.bypassNode);
+            currentNode = slot.bypassNode;
+        }
+        currentNode.connect(audioCtx.destination);
     }
 
-    async function createReverbIR() {
-        const sampleRate = audioCtx.sampleRate;
-        const length = sampleRate * 2;
-        const impulse = audioCtx.createBuffer(2, length, sampleRate);
-        const left = impulse.getChannelData(0);
-        const right = impulse.getChannelData(1);
-        for (let i = 0; i < length; i++) {
-            left[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
-            right[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
+    function connectFxSlot(slot) {
+        const previousNode = fxSlots.indexOf(slot) === 0 ? masterGain : fxSlots[fxSlots.indexOf(slot) - 1].bypassNode;
+        previousNode.disconnect();
+        if (slot.isActive && slot.effectType !== 'none' && slot.node) {
+            if (slot.effectType === 'reverb') {
+                const { convolver, wetGain, dryGain } = slot.node;
+                previousNode.connect(dryGain).connect(slot.bypassNode);
+                previousNode.connect(convolver).connect(wetGain).connect(slot.bypassNode);
+            } else if (slot.effectType === 'delay') {
+                const { delay, feedback, wetGain, dryGain } = slot.node;
+                previousNode.connect(dryGain).connect(slot.bypassNode);
+                previousNode.connect(delay);
+                delay.connect(wetGain).connect(slot.bypassNode);
+                delay.connect(feedback).connect(delay);
+            } else if (slot.effectType === 'slicer') {
+                const { slicerGain, lfoGain } = slot.node;
+                lfoGain.connect(slicerGain.gain);
+                previousNode.connect(slicerGain).connect(slot.bypassNode);
+            }
+        } else {
+            previousNode.connect(slot.bypassNode);
         }
-        return impulse;
+    }
+
+    function updateAllFxConnections() {
+        fxSlots.forEach(connectFxSlot);
     }
 
     function setupUIComponents() {
@@ -242,6 +252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         createSettingsButtonGroup(sequenceMaxButtonsContainer, Array.from({ length: 16 }, (_, i) => i + 1), (val) => { currentSequenceMax = parseInt(val); }, currentSequenceMax);
         createSettingsButtonGroup(noteDurationButtonsContainer, noteDurations, (val) => { currentNoteDuration = parseFloat(val); }, currentNoteDuration, 'value', 'label');
         populateRandomGenerateModalControls();
+        createFxSlotButtons();
     }
 
     function setupEventListeners() {
@@ -252,26 +263,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         randomGenerateTriggerButton.onclick = openRandomGenerateModal;
         saveDataButton.onclick = openSavePresetModal;
         loadDataButton.onclick = openLoadPresetModal;
-
-        bpmAdjustButtons.forEach(button => button.addEventListener('click', () => adjustBpm(parseInt(button.dataset.step))));
-        bpmInput.addEventListener('change', () => bpmInput.value = Math.max(20, Math.min(300, parseInt(bpmInput.value) || 120)));
-
+        bpmAdjustButtons.forEach(button => button.addEventListener('click', () => {
+            adjustBpm(parseInt(button.dataset.step));
+            updateActiveSlicersBpm();
+        }));
+        bpmInput.addEventListener('change', () => {
+            bpmInput.value = Math.max(20, Math.min(300, parseInt(bpmInput.value) || 120));
+            updateActiveSlicersBpm();
+        });
         setupDragAndDropListeners();
-        setupEffectEventListeners();
-
         setupModalListeners(editModal, closeEditModal);
         setupModalListeners(bulkEditModal, closeBulkEditModal);
         setupModalListeners(randomGenerateModal, closeRandomGenerateModal);
         setupModalListeners(savePresetModal, closeSavePresetModal);
         setupModalListeners(loadPresetModal, closeLoadPresetModal);
-
+        setupModalListeners(fxEditModal, closeFxEditModal);
+        fxModalCompleteButton.onclick = saveFxSlotChanges;
+        fxTypeSelect.onchange = handleFxTypeChange;
         document.getElementById('modal-volume').oninput = (e) => {
             document.getElementById('modal-volume-display').textContent = `${e.target.value}%`;
             updateSliderFill(e.target);
         };
         document.getElementById('modal-complete-button').onclick = saveSingleStepChanges;
         document.getElementById('modal-play-test-button').onclick = playTestFromSingleEditModal;
-        
         const bulkVolumeSlider = document.getElementById('bulk-modal-volume');
         const bulkVolumeDisplay = document.getElementById('bulk-modal-volume-display');
         bulkVolumeSlider.oninput = () => {
@@ -288,44 +302,202 @@ document.addEventListener('DOMContentLoaded', async () => {
             bulkVolumeSlider.dataset.isSetForBulk = "false";
             bulkVolumeSlider.style.opacity = 0.5;
             bulkVolumeDisplay.style.opacity = 0.5;
+            updateSliderFill(bulkVolumeSlider);
         };
-
         document.getElementById('rg-execute-button').onclick = executeRandomGeneration;
         document.getElementById('save-preset-button').onclick = saveOrUpdatePresetInFirestore;
         document.getElementById('search-box').addEventListener('input', populatePresetListFromFirestore);
         setupKeyboardShortcuts();
     }
 
-    function setupEffectEventListeners() {
-        reverbSwitch.addEventListener('change', (e) => {
-            reverbMixSlider.disabled = !e.target.checked;
-            effects.reverb.wetGain.gain.setValueAtTime(e.target.checked ? parseFloat(reverbMixSlider.value) : 0, audioCtx.currentTime);
+    function createFxSlotButtons() {
+        fxSlotsContainer.innerHTML = '';
+        fxSlots.forEach(slot => {
+            const button = document.createElement('button');
+            button.className = 'fx-slot-button';
+            button.dataset.fxId = slot.id;
+            button.innerHTML = `<span class="fx-slot-name">${slot.name}</span><span class="fx-type-name"></span>`;
+            let pressTimer = null;
+            const startPress = (e) => {
+                e.preventDefault();
+                pressTimer = setTimeout(() => {
+                    openFxEditModal(slot.id);
+                    pressTimer = null;
+                }, 500);
+            };
+            const cancelPress = () => {
+                if (pressTimer) clearTimeout(pressTimer);
+                pressTimer = null;
+            };
+            const clickHandler = () => {
+                if (pressTimer !== null) toggleFxSlot(slot.id);
+                cancelPress();
+            };
+            button.addEventListener('mousedown', startPress);
+            button.addEventListener('touchstart', startPress, { passive: false });
+            button.addEventListener('mouseup', clickHandler);
+            button.addEventListener('mouseleave', cancelPress);
+            button.addEventListener('touchend', clickHandler);
+            fxSlotsContainer.appendChild(button);
+            updateFxSlotButton(slot.id);
         });
-        reverbMixSlider.addEventListener('input', (e) => {
-            effects.reverb.wetGain.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
-            updateSliderFill(e.target);
+    }
+
+    function updateFxSlotButton(fxId) {
+        const slot = fxSlots.find(s => s.id === fxId);
+        const button = fxSlotsContainer.querySelector(`[data-fx-id="${fxId}"]`);
+        if (!slot || !button) return;
+        button.classList.toggle('active', slot.isActive);
+        button.querySelector('.fx-type-name').textContent = effectDefinitions[slot.effectType].name;
+    }
+
+    function toggleFxSlot(fxId) {
+        const slot = fxSlots.find(s => s.id === fxId);
+        if (!slot) return;
+        slot.isActive = !slot.isActive;
+        updateFxSlotButton(fxId);
+        connectFxSlot(slot);
+    }
+
+    function openFxEditModal(fxId) {
+        currentlyEditingFxSlot = fxSlots.find(s => s.id === fxId);
+        if (!currentlyEditingFxSlot) return;
+        fxModalTitle.textContent = `${currentlyEditingFxSlot.name} 設定`;
+        fxTypeSelect.innerHTML = Object.keys(effectDefinitions).map(type => `<option value="${type}">${effectDefinitions[type].name}</option>`).join('');
+        fxTypeSelect.value = currentlyEditingFxSlot.effectType;
+        populateFxParams();
+        openModal(fxEditModal);
+    }
+
+    function closeFxEditModal() {
+        closeModalHelper(fxEditModal);
+        currentlyEditingFxSlot = null;
+    }
+
+    function handleFxTypeChange() {
+        const newType = fxTypeSelect.value;
+        const slot = currentlyEditingFxSlot;
+        if (!slot || slot.effectType === newType) return;
+        slot.effectType = newType;
+        const paramDefs = effectDefinitions[newType].params;
+        slot.params = {};
+        for (const paramKey in paramDefs) {
+            slot.params[paramKey] = paramDefs[paramKey].value;
+        }
+        populateFxParams();
+    }
+
+    function populateFxParams() {
+        const slot = currentlyEditingFxSlot;
+        fxParamsContainer.innerHTML = '';
+        if (!slot || slot.effectType === 'none') return;
+
+        const paramDefs = effectDefinitions[slot.effectType].params;
+
+        for (const paramKey in paramDefs) {
+            const paramDef = paramDefs[paramKey];
+            const currentValue = slot.params[paramKey] ?? paramDef.value;
+
+            const controlWrapper = document.createElement('div');
+            controlWrapper.className = 'fx-param-control';
+            
+            const label = document.createElement('label');
+            label.textContent = paramDef.label;
+            controlWrapper.appendChild(label);
+
+            if (paramDef.type === 'range') {
+                const sliderWrapper = document.createElement('div');
+                sliderWrapper.className = 'slider-wrapper';
+                sliderWrapper.innerHTML = `
+                    <input type="range" min="${paramDef.min}" max="${paramDef.max}" step="${paramDef.step}" value="${currentValue}" data-param-key="${paramKey}">
+                    <span>${currentValue}</span>`;
+                const slider = sliderWrapper.querySelector('input[type="range"]');
+                const valueDisplay = sliderWrapper.querySelector('span');
+                slider.oninput = () => {
+                    valueDisplay.textContent = slider.value;
+                    updateSliderFill(slider);
+                };
+                controlWrapper.appendChild(sliderWrapper);
+                updateSliderFill(slider);
+            } else if (paramDef.type === 'buttons') {
+                const buttonGroup = document.createElement('div');
+                buttonGroup.className = 'button-selector-group fx-param-buttons';
+                buttonGroup.dataset.paramKey = paramKey;
+                paramDef.options.forEach(opt => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.value = opt.value;
+                    button.textContent = opt.label;
+                    if (opt.value == currentValue) {
+                        button.classList.add('active');
+                    }
+                    button.onclick = () => {
+                        buttonGroup.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                    };
+                    buttonGroup.appendChild(button);
+                });
+                controlWrapper.appendChild(buttonGroup);
+            }
+            fxParamsContainer.appendChild(controlWrapper);
+        }
+    }
+
+    async function saveFxSlotChanges() {
+        const slot = currentlyEditingFxSlot;
+        if (!slot) return;
+
+        // Update params from modal inputs
+        fxParamsContainer.querySelectorAll('input[type="range"]').forEach(slider => {
+            slot.params[slider.dataset.paramKey] = parseFloat(slider.value);
+        });
+        fxParamsContainer.querySelectorAll('.button-selector-group').forEach(group => {
+            const paramKey = group.dataset.paramKey;
+            const activeButton = group.querySelector('button.active');
+            if (activeButton) {
+                slot.params[paramKey] = parseFloat(activeButton.dataset.value);
+            }
         });
 
-        delaySwitch.addEventListener('change', (e) => {
-            const isEnabled = e.target.checked;
-            delayMixSlider.disabled = !isEnabled;
-            delayTimeSlider.disabled = !isEnabled;
-            delayFeedbackSlider.disabled = !isEnabled;
-            delaySettingsContainer.style.display = isEnabled ? 'block' : 'none';
-            effects.delay.wetGain.gain.setValueAtTime(isEnabled ? parseFloat(delayMixSlider.value) : 0, audioCtx.currentTime);
-        });
-        delayMixSlider.addEventListener('input', (e) => {
-            effects.delay.wetGain.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
-            updateSliderFill(e.target);
-        });
-        delayTimeSlider.addEventListener('input', (e) => {
-            effects.delay.node.delayTime.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
-            updateSliderFill(e.target);
-        });
-        delayFeedbackSlider.addEventListener('input', (e) => {
-            effects.delay.feedback.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
-            updateSliderFill(e.target);
-        });
+        // If effect type changed, we may need to create a new audio node
+        if (!slot.node || slot.node.type !== slot.effectType) {
+            if (effectDefinitions[slot.effectType].createNode) {
+                slot.node = await effectDefinitions[slot.effectType].createNode(audioCtx);
+                slot.node.type = slot.effectType;
+            } else {
+                slot.node = null;
+            }
+        }
+        
+        applyFxParams(slot);
+        updateAllFxConnections();
+        updateFxSlotButton(slot.id);
+        closeFxEditModal();
+    }
+
+    function applyFxParams(slot) {
+        if (!slot.node || slot.effectType === 'none') return;
+        const params = slot.params;
+        const now = audioCtx.currentTime;
+        if (slot.effectType === 'reverb') {
+            slot.node.wetGain.gain.setValueAtTime(params.mix, now);
+            slot.node.dryGain.gain.setValueAtTime(1 - params.mix, now);
+        } else if (slot.effectType === 'delay') {
+            slot.node.wetGain.gain.setValueAtTime(params.mix, now);
+            slot.node.dryGain.gain.setValueAtTime(1 - params.mix, now);
+            slot.node.delay.delayTime.setValueAtTime(params.time, now);
+            slot.node.feedback.gain.setValueAtTime(params.feedback, now);
+        } else if (slot.effectType === 'slicer') {
+            const bpm = parseFloat(bpmInput.value);
+            const frequencyInHz = (bpm / 60) * params.rate;
+            slot.node.lfo.frequency.setValueAtTime(frequencyInHz, now);
+            slot.node.lfoGain.gain.setValueAtTime(params.depth, now);
+        }
+    }
+
+    function updateActiveSlicersBpm() {
+        const activeSlicers = fxSlots.filter(s => s.isActive && s.effectType === 'slicer');
+        activeSlicers.forEach(applyFxParams);
     }
 
     function setupKeyboardShortcuts() {
@@ -333,25 +505,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const activeElement = document.activeElement;
             const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName) && !activeElement.type === 'range';
             if (isTyping) return;
-
             const isModalActive = document.querySelector('.modal.active');
             if (isModalActive && e.key !== 'Escape') return;
-
             switch (e.key) {
-                case ' ':
-                    if (isPlaying) stopButton.click(); else playLoopButton.click();
-                    e.preventDefault();
-                    break;
+                case ' ': if (isPlaying) stopButton.click(); else playLoopButton.click(); e.preventDefault(); break;
                 case 'Enter': playOnceButton.click(); e.preventDefault(); break;
                 case 'ArrowUp': adjustBpm(e.shiftKey ? 10 : 1); e.preventDefault(); break;
                 case 'ArrowDown': adjustBpm(e.shiftKey ? -10 : -1); e.preventDefault(); break;
                 case 'ArrowRight': navigateButtonGroup(e.shiftKey ? sequenceMaxButtonsContainer : noteDurationButtonsContainer, 1); e.preventDefault(); break;
                 case 'ArrowLeft': navigateButtonGroup(e.shiftKey ? sequenceMaxButtonsContainer : noteDurationButtonsContainer, -1); e.preventDefault(); break;
-                case 'Escape':
-                    if (isModalActive) isModalActive.querySelector('.close-button').click();
-                    else if (isPlaying) stopButton.click();
-                    e.preventDefault();
-                    break;
+                case 'Escape': if (isModalActive) isModalActive.querySelector('.close-button').click(); else if (isPlaying) stopButton.click(); e.preventDefault(); break;
                 case 'r': case 'R': randomGenerateTriggerButton.click(); break;
                 case 'b': case 'B': bulkEditTriggerButton.click(); break;
                 case 's': case 'S': saveDataButton.click(); break;
@@ -398,14 +561,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             targetElement.classList.remove('drag-over');
             const sourceId = parseInt(dragSrcElement.dataset.id);
             const targetId = parseInt(targetElement.dataset.id);
-            showConfirmationModal(
-                `ステップ${sourceId + 1}のデータをステップ${targetId + 1}と入れ替えますか？`,
+            showConfirmationModal(`ステップ${sourceId + 1}のデータをステップ${targetId + 1}と入れ替えますか？`,
                 () => { swapStepData(sourceId, targetId); showToast(`ステップ${sourceId + 1}と${targetId + 1}を入れ替えました`, 'success'); },
-                {
-                    confirmText: '入れ替え', cancelText: 'キャンセル',
-                    onAlternative: () => { copyStepData(sourceId, targetId); showToast(`ステップ${sourceId + 1}をステップ${targetId + 1}に上書きしました`, 'success'); },
-                    alternativeText: '上書き'
-                }
+                { confirmText: '入れ替え', cancelText: 'キャンセル', onAlternative: () => { copyStepData(sourceId, targetId); showToast(`ステップ${sourceId + 1}をステップ${targetId + 1}に上書きしました`, 'success'); }, alternativeText: '上書き' }
             );
             dragSrcElement = null;
         });
@@ -551,7 +709,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         gain.gain.linearRampToValueAtTime(0, startTime + duration);
         
-        osc.connect(gain).connect(effects.masterGain);
+        osc.connect(gain).connect(masterGain);
 
         osc.start(startTime);
         osc.stop(startTime + duration + 0.01);
@@ -678,7 +836,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const octaveMax = parseInt(getActiveValue(document.getElementById('rg-octave-max-buttons')));
         const stepsToGen = parseInt(getActiveValue(document.getElementById('rg-steps-buttons')));
         if (!rootNoteName || !octaveMin || !octaveMax || !stepsToGen) {
-            showToast("ランダム生成の全項目を選択してください。", "error"); return;
+            showToast("ランダム生成の��項目を選択してください。", "error"); return;
         }
         if (octaveMin > octaveMax) {
             showToast("最小オクターブは最大以下にしてください。", "error"); return;
@@ -970,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
             const doc = await docRef.get();
             if (!doc.exists) {
-                showToast('編集対象のプリセットが見つかりません。', 'error');
+                showToast('編集対象のプリセットが見つ���りません。', 'error');
                 return;
             }
             const preset = doc.data();
@@ -985,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             openModal(savePresetModal);
         } catch (error) {
-            showToast('プリセット情報の取得に失���しました。', 'error');
+            showToast('プリセット情報の取得に失敗しました。', 'error');
         }
     }
 
@@ -1015,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!currentUser) return;
 
         showConfirmationModal(
-            `本当にプリセッ��「${presetName}」を削除しますか？この操作は取り消せません。`,
+            `本当にプリセット「${presetName}」を削除しますか？この操作は取り消せません。`,
             async () => {
                 try {
                     await db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId).delete();

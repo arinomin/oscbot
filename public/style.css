@@ -512,6 +512,95 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
   box-shadow: 0 0 8px var(--highlight-color);
 }
 .modal-controls input[type="range"]+span { margin-left: 10px; }
+
+/* --- FX Slot styles --- */
+#fx-slots-container {
+  grid-template-columns: repeat(3, 1fr);
+}
+.fx-slot-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 5px !important;
+  min-height: 50px !important;
+  gap: 4px;
+  font-size: 1em !important;
+  font-weight: bold;
+  background-color: var(--secondary-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-color) !important;
+}
+.fx-slot-button .fx-type-name {
+  font-size: 0.7em;
+  font-weight: normal;
+  color: rgba(236, 240, 241, 0.7);
+}
+.fx-slot-button.active {
+  background: var(--accent-gradient) !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+.fx-slot-button.active .fx-type-name {
+  color: white;
+}
+
+/* --- FX Edit Modal --- */
+#fx-edit-modal .modal-content {
+    max-width: 450px;
+}
+#fx-params-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 8px;
+}
+.fx-param-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.fx-param-control label {
+    margin-bottom: 0;
+}
+.fx-param-control .slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.fx-param-control input[type="range"] {
+    flex-grow: 1;
+}
+.fx-param-control .button-selector-group.fx-param-buttons {
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+}
+
+.fx-param-control .button-selector-group button {
+    aspect-ratio: auto;
+    min-height: 40px;
+    padding: 8px 6px;
+}
+
+#fx-type-select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--primary-bg);
+    color: var(--text-color);
+}
+.fx-control-group {
+    margin-bottom: 15px;
+}
+.fx-control-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
 .modal-main-action-button, .modal-controls button:not(.button-selector-group button):not(.clear-selection-button) {
   padding: 12px 20px; background: var(--accent-gradient); color: white;
   border: none; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 20px;
