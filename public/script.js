@@ -65,6 +65,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentOnConfirm = null;
 
+    function updateSliderFill(slider) {
+        if (!slider) return;
+        const min = slider.min ? parseFloat(slider.min) : 0;
+        const max = slider.max ? parseFloat(slider.max) : 100;
+        const value = parseFloat(slider.value);
+        const percentage = ((value - min) / (max - min)) * 100;
+        slider.style.setProperty('--fill-percent', `${percentage}%`);
+    }
+
     function showConfirmationModal(message, onConfirm, options = {}) {
         confirmationModalMessage.textContent = message;
         
@@ -170,6 +179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
         initAuth();
         loadLocalBackup();
+        document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
     }
 
     async function setupAudioEffects() {
@@ -255,7 +265,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupModalListeners(savePresetModal, closeSavePresetModal);
         setupModalListeners(loadPresetModal, closeLoadPresetModal);
 
-        document.getElementById('modal-volume').oninput = (e) => document.getElementById('modal-volume-display').textContent = `${e.target.value}%`;
+        document.getElementById('modal-volume').oninput = (e) => {
+            document.getElementById('modal-volume-display').textContent = `${e.target.value}%`;
+            updateSliderFill(e.target);
+        };
         document.getElementById('modal-complete-button').onclick = saveSingleStepChanges;
         document.getElementById('modal-play-test-button').onclick = playTestFromSingleEditModal;
         
@@ -266,6 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             bulkVolumeSlider.dataset.isSetForBulk = "true";
             bulkVolumeSlider.style.opacity = 1;
             bulkVolumeDisplay.style.opacity = 1;
+            updateSliderFill(bulkVolumeSlider);
         };
         document.getElementById('bulk-modal-apply-button').onclick = applyBulkChanges;
         document.getElementById('bulk-clear-volume-button').onclick = () => {
@@ -289,6 +303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         reverbMixSlider.addEventListener('input', (e) => {
             effects.reverb.wetGain.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+            updateSliderFill(e.target);
         });
 
         delaySwitch.addEventListener('change', (e) => {
@@ -301,12 +316,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         delayMixSlider.addEventListener('input', (e) => {
             effects.delay.wetGain.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+            updateSliderFill(e.target);
         });
         delayTimeSlider.addEventListener('input', (e) => {
             effects.delay.node.delayTime.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+            updateSliderFill(e.target);
         });
         delayFeedbackSlider.addEventListener('input', (e) => {
             effects.delay.feedback.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+            updateSliderFill(e.target);
         });
     }
 
@@ -581,6 +599,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setActiveButtonInGroup(document.getElementById('modal-waveform-buttons'), data.waveform);
         const volumeSlider = document.getElementById('modal-volume');
         volumeSlider.value = data.volume * 100;
+        updateSliderFill(volumeSlider);
         document.getElementById('modal-volume-display').textContent = `${Math.round(data.volume * 100)}%`;
         openModal(editModal);
     }
@@ -621,6 +640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         bulkVolumeSlider.dataset.isSetForBulk = "false";
         bulkVolumeSlider.style.opacity = 0.5;
         document.getElementById('bulk-modal-volume-display').style.opacity = 0.5;
+        updateSliderFill(bulkVolumeSlider);
         openModal(bulkEditModal);
     }
     function closeBulkEditModal() { closeModalHelper(bulkEditModal); }
