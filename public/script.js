@@ -116,6 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentNoteDuration = 1;
     let currentlyLoadedPresetDocId = null;
     let currentlyEditingFxSlot = null;
+    let autoSaveTimer = null;
 
     const masterGain = audioCtx.createGain();
 
@@ -311,8 +312,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         generateButtonSelectors(document.getElementById('bulk-modal-note-buttons'), displayNotes, 'note', (val) => val.replace('♯', '#'));
         generateButtonSelectors(document.getElementById('bulk-modal-octave-buttons'), octaves, 'octave');
         generateButtonSelectors(document.getElementById('bulk-modal-waveform-buttons'), waveformKeys, 'waveform', (key) => waveforms[key]);
-        createSettingsButtonGroup(sequenceMaxButtonsContainer, Array.from({ length: 16 }, (_, i) => i + 1), (val) => { currentSequenceMax = parseInt(val); }, currentSequenceMax);
-        createSettingsButtonGroup(noteDurationButtonsContainer, noteDurations, (val) => { currentNoteDuration = parseFloat(val); }, currentNoteDuration, 'value', 'label');
+        createSettingsButtonGroup(sequenceMaxButtonsContainer, Array.from({ length: 16 }, (_, i) => i + 1), (val) => { currentSequenceMax = parseInt(val); markAsDirty(); }, currentSequenceMax);
+        createSettingsButtonGroup(noteDurationButtonsContainer, noteDurations, (val) => { currentNoteDuration = parseFloat(val); markAsDirty(); }, currentNoteDuration, 'value', 'label');
         populateRandomGenerateModalControls();
         createFxSlotButtons();
     }
@@ -328,10 +329,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         bpmAdjustButtons.forEach(button => button.addEventListener('click', () => {
             adjustBpm(parseInt(button.dataset.step));
             updateActiveBpmSyncFx();
+            markAsDirty();
         }));
         bpmInput.addEventListener('change', () => {
             bpmInput.value = Math.max(20, Math.min(300, parseInt(bpmInput.value) || 120));
             updateActiveBpmSyncFx();
+            markAsDirty();
         });
         setupDragAndDropListeners();
         setupModalListeners(editModal, closeEditModal);
@@ -419,6 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         slot.isActive = !slot.isActive;
         updateFxSlotButton(fxId);
         connectFxSlot(slot);
+        markAsDirty();
     }
 
     function openFxEditModal(fxId) {
@@ -447,7 +451,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             slot.params[paramKey] = paramDefs[paramKey].value;
         }
         
-        // Re-create node for the new effect type
         if (effectDefinitions[newType].createNode) {
             slot.node = await effectDefinitions[newType].createNode(audioCtx);
             slot.node.type = newType;
@@ -639,6 +642,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateAllFxConnections();
         updateFxSlotButton(slot.id);
         closeFxEditModal();
+        markAsDirty();
     }
 
     function applyFxParams(slot) {
@@ -743,8 +747,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sourceId = parseInt(dragSrcElement.dataset.id);
             const targetId = parseInt(targetElement.dataset.id);
             showConfirmationModal(`ステップ${sourceId + 1}のデータをステップ${targetId + 1}と入れ替えますか？`,
-                () => { swapStepData(sourceId, targetId); showToast(`ステップ${sourceId + 1}と${targetId + 1}を入れ替えました`, 'success'); },
-                { confirmText: '入れ替え', cancelText: 'キャンセル', onAlternative: () => { copyStepData(sourceId, targetId); showToast(`ステップ${sourceId + 1}をステップ${targetId + 1}に上書きしました`, 'success'); }, alternativeText: '上書き' }
+                () => { swapStepData(sourceId, targetId); },
+                { confirmText: '入れ替え', cancelText: 'キャンセル', onAlternative: () => { copyStepData(sourceId, targetId); }, alternativeText: '上書き' }
             );
             dragSrcElement = null;
         });
@@ -759,8 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         updatePlaybackBlockDisplay(sourceId);
         updatePlaybackBlockDisplay(targetId);
-        markAsUnsaved();
-        saveLocalBackup();
+        markAsDirty();
     }
 
     function copyStepData(sourceId, targetId) {
@@ -769,8 +772,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sequenceData[targetId][key] = sourceData[key];
         });
         updatePlaybackBlockDisplay(targetId);
-        markAsUnsaved();
-        saveLocalBackup();
+        markAsDirty();
     }
 
     function setupModalListeners(modalElement, closeFn) {
@@ -954,8 +956,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         sequenceData[id].volume = parseInt(document.getElementById('modal-volume').value) / 100;
         updatePlaybackBlockDisplay(id);
         closeEditModal();
-        markAsUnsaved();
-        saveLocalBackup();
+        markAsDirty();
     }
 
     function playTestFromSingleEditModal() {
@@ -1002,8 +1003,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updatePlaybackBlockDisplay(i);
         }
         closeBulkEditModal();
-        markAsUnsaved();
-        saveLocalBackup();
+        markAsDirty();
     }
 
     function openRandomGenerateModal() { openModal(randomGenerateModal); }
@@ -1011,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function executeRandomGeneration() {
         currentlyLoadedPresetDocId = null;
+        updatePresetStatus(null, false);
         const getActiveValue = (container) => container.querySelector('button.active')?.dataset.value;
         const rootNoteName = getActiveValue(document.getElementById('rg-root-note-buttons'));
         const octaveMin = parseInt(getActiveValue(document.getElementById('rg-octave-min-buttons')));
@@ -1047,26 +1048,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         setActiveButtonInGroup(sequenceMaxButtonsContainer, currentSequenceMax);
         closeRandomGenerateModal();
         showToast("ランダム生成を実行しました。", "success");
+        markAsDirty();
     }
 
     const LOCAL_BACKUP_KEY = 'oscbot_local_backup';
 
     async function applyState(state) {
-        // Sequence Data
         state.sequenceData.forEach((step, i) => {
             if (sequenceData[i]) {
                 Object.assign(sequenceData[i], step);
                 updatePlaybackBlockDisplay(i);
             }
         });
-        // Global Controls
         bpmInput.value = state.bpm;
         currentNoteDuration = state.noteDuration;
         setActiveButtonInGroup(noteDurationButtonsContainer, currentNoteDuration);
         currentSequenceMax = state.sequenceMax;
         setActiveButtonInGroup(sequenceMaxButtonsContainer, currentSequenceMax);
 
-        // FX Slots (Backward compatible)
         if (state.fxSlots) {
             for (let i = 0; i < fxSlots.length; i++) {
                 if (state.fxSlots[i]) {
@@ -1074,17 +1073,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const newSlotState = state.fxSlots[i];
                     oldSlot.isActive = newSlotState.isActive;
                     oldSlot.effectType = newSlotState.effectType;
-                    // Deep merge params to keep defaults for newly added params
-                    oldSlot.params = { ...effectDefinitions[newSlotState.effectType].params, ...newSlotState.params };
+                    const paramDefs = effectDefinitions[newSlotState.effectType]?.params || {};
+                    const defaultParams = Object.fromEntries(Object.entries(paramDefs).map(([key, val]) => [key, val.value]));
+                    oldSlot.params = { ...defaultParams, ...newSlotState.params };
                 }
             }
-            await initializeFxNodes(); // Re-initialize and apply params
+            await initializeFxNodes();
             fxSlots.forEach(slot => updateFxSlotButton(slot.id));
         }
     }
 
     function getCurrentState() {
-        const state = {
+        return {
             sequenceData: sequenceData.map(({ note, octave, waveform, volume }) => ({ note, octave, waveform, volume })),
             bpm: parseInt(bpmInput.value),
             noteDuration: currentNoteDuration,
@@ -1095,7 +1095,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 params: slot.params
             }))
         };
-        return state;
     }
 
     function saveLocalBackup() {
@@ -1128,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 '前回エディタを閉じたときの未保存のシーケンスがあります。復元しますか？',
                 () => {
                     applyState(backup);
-                    markAsUnsaved();
+                    markAsDirty();
                     showToast('シーケンスを復元しました。', 'success');
                 }
             );
@@ -1142,7 +1141,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.removeItem(LOCAL_BACKUP_KEY);
     }
 
-    function markAsUnsaved() {
+    function markAsDirty() {
+        saveLocalBackup();
         let statusText;
         const baseName = (currentPresetStatus.textContent || '').replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '');
         if (currentlyLoadedPresetDocId && baseName) {
@@ -1151,6 +1151,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusText = '未保存のシーケンス *';
         }
         updatePresetStatus(statusText, false);
+
+        if (!currentUser) return;
+
+        if (autoSaveTimer) clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(performAutoSave, 2500);
+    }
+
+    async function performAutoSave() {
+        if (!currentUser) return;
+        updatePresetStatus('保存中...', false);
+        try {
+            const state = getCurrentState();
+            let presetName;
+            if (currentlyLoadedPresetDocId) {
+                const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(currentlyLoadedPresetDocId);
+                await docRef.update({ ...state, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                presetName = (await docRef.get()).data().name;
+            } else {
+                presetName = `無題 ${new Date().toLocaleString()}`;
+                const docRef = await db.collection('users').doc(currentUser.uid).collection('presets').add({
+                    ...state,
+                    name: presetName,
+                    description: '',
+                    tags: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+                currentlyLoadedPresetDocId = docRef.id;
+            }
+            updatePresetStatus(presetName, true);
+            clearLocalBackup();
+        } catch (error) {
+            showToast(`自動保存に失敗: ${error.message}`, 'error');
+            console.error("Auto-save error: ", error);
+            updatePresetStatus(currentPresetStatus.textContent.replace('保存中...', '') + '*', false);
+        }
     }
 
     function updatePresetStatus(text, isSaved) {
