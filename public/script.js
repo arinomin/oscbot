@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const masterGain = audioCtx.createGain();
 
-    const fxSlots = [
+    let fxSlots = [
         { 
             id: 'B', 
             name: 'FX B', 
@@ -255,10 +255,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function initializeFxNodes() {
         for (const slot of fxSlots) {
-            if (slot.effectType !== 'none') {
+            if (slot.effectType !== 'none' && effectDefinitions[slot.effectType].createNode) {
                 slot.node = await effectDefinitions[slot.effectType].createNode(audioCtx);
                 slot.node.type = slot.effectType;
                 applyFxParams(slot);
+            } else {
+                slot.node = null;
             }
         }
         updateAllFxConnections();
@@ -434,7 +436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentlyEditingFxSlot = null;
     }
 
-    function handleFxTypeChange() {
+    async function handleFxTypeChange() {
         const newType = fxTypeSelect.value;
         const slot = currentlyEditingFxSlot;
         if (!slot || slot.effectType === newType) return;
@@ -444,6 +446,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (const paramKey in paramDefs) {
             slot.params[paramKey] = paramDefs[paramKey].value;
         }
+        
+        // Re-create node for the new effect type
+        if (effectDefinitions[newType].createNode) {
+            slot.node = await effectDefinitions[newType].createNode(audioCtx);
+            slot.node.type = newType;
+        } else {
+            slot.node = null;
+        }
+
         populateFxParams();
     }
 
@@ -1040,27 +1051,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const LOCAL_BACKUP_KEY = 'oscbot_local_backup';
 
-    function applyState(state) {
+    async function applyState(state) {
+        // Sequence Data
         state.sequenceData.forEach((step, i) => {
             if (sequenceData[i]) {
                 Object.assign(sequenceData[i], step);
                 updatePlaybackBlockDisplay(i);
             }
         });
+        // Global Controls
         bpmInput.value = state.bpm;
         currentNoteDuration = state.noteDuration;
         setActiveButtonInGroup(noteDurationButtonsContainer, currentNoteDuration);
         currentSequenceMax = state.sequenceMax;
         setActiveButtonInGroup(sequenceMaxButtonsContainer, currentSequenceMax);
+
+        // FX Slots (Backward compatible)
+        if (state.fxSlots) {
+            for (let i = 0; i < fxSlots.length; i++) {
+                if (state.fxSlots[i]) {
+                    const oldSlot = fxSlots[i];
+                    const newSlotState = state.fxSlots[i];
+                    oldSlot.isActive = newSlotState.isActive;
+                    oldSlot.effectType = newSlotState.effectType;
+                    // Deep merge params to keep defaults for newly added params
+                    oldSlot.params = { ...effectDefinitions[newSlotState.effectType].params, ...newSlotState.params };
+                }
+            }
+            await initializeFxNodes(); // Re-initialize and apply params
+            fxSlots.forEach(slot => updateFxSlotButton(slot.id));
+        }
+    }
+
+    function getCurrentState() {
+        const state = {
+            sequenceData: sequenceData.map(({ note, octave, waveform, volume }) => ({ note, octave, waveform, volume })),
+            bpm: parseInt(bpmInput.value),
+            noteDuration: currentNoteDuration,
+            sequenceMax: currentSequenceMax,
+            fxSlots: fxSlots.map(slot => ({
+                isActive: slot.isActive,
+                effectType: slot.effectType,
+                params: slot.params
+            }))
+        };
+        return state;
     }
 
     function saveLocalBackup() {
         try {
             const backup = {
-                sequenceData: sequenceData.map(({ note, octave, waveform, volume }) => ({ note, octave, waveform, volume })),
-                bpm: parseInt(bpmInput.value),
-                noteDuration: currentNoteDuration,
-                sequenceMax: currentSequenceMax,
+                ...getCurrentState(),
                 timestamp: new Date().getTime()
             };
             localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(backup));
@@ -1196,12 +1237,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast('プリセット情報を更新しました。', 'success');
                 updatePresetStatus(presetData.name, true);
             } else {
-                presetData.sequenceData = sequenceData.map(({ note, octave, waveform, volume }) => ({ note, octave, waveform, volume }));
-                presetData.bpm = parseInt(bpmInput.value);
-                presetData.noteDuration = currentNoteDuration;
-                presetData.sequenceMax = currentSequenceMax;
-                presetData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                const docRef = await userPresetsRef.add(presetData);
+                const fullPresetData = {
+                    ...presetData,
+                    ...getCurrentState(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                const docRef = await userPresetsRef.add(fullPresetData);
                 currentlyLoadedPresetDocId = docRef.id;
                 showToast('プリセットを新規保存しました。', 'success');
                 updatePresetStatus(presetData.name, true);
@@ -1217,10 +1258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function overwritePresetInFirestore(presetId) {
         if (!currentUser || !presetId) return;
         const presetUpdateData = {
-            sequenceData: sequenceData.map(({ note, octave, waveform, volume }) => ({ note, octave, waveform, volume })),
-            bpm: parseInt(bpmInput.value),
-            noteDuration: currentNoteDuration,
-            sequenceMax: currentSequenceMax,
+            ...getCurrentState(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
         try {
@@ -1326,7 +1364,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast('プリセットが見つかりません。', 'error'); return;
             }
             const preset = doc.data();
-            applyState(preset);
+            await applyState(preset);
             
             currentlyLoadedPresetDocId = presetId;
             updatePresetStatus(preset.name, true);
