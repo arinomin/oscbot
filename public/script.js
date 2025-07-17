@@ -1107,26 +1107,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             delete savePresetModal.dataset.editingId;
             const existingOverwriteBtn = document.getElementById('overwrite-preset-button');
-            if(existingOverwriteBtn) existingOverwriteBtn.remove();
+            if (existingOverwriteBtn) existingOverwriteBtn.remove();
 
-            modalTitle.textContent = '新規プリセット作成';
+            if (isSavingCurrentState) {
+                modalTitle.textContent = '名前を付けて保存';
+                saveButton.textContent = '保存';
+            } else {
+                modalTitle.textContent = '新規プリセット作成';
+                saveButton.textContent = '作成して保存';
+            }
+
             presetNameInput.value = '';
             presetDescriptionInput.value = '';
             presetTagsInput.value = '';
-            saveButton.textContent = '作成して保存';
-            
+
             saveButton.onclick = () => createNewPreset(isSavingCurrentState);
 
             openModal(savePresetModal);
         };
 
-        if (!isSavingCurrentState && currentlyLoadedPresetDocId) { // If editing a preset, confirm before creating a new one
+        const hasUnsavedChanges = currentPresetStatus.textContent.includes('*');
+        if (!isSavingCurrentState && hasUnsavedChanges) {
             showConfirmationModal(
                 '現在の編集内容を破棄して、新しいプリセットを作成しますか？',
-                () => {
-                    action();
-                },
-                { confirmText: 'はい', cancelText: 'いいえ' }
+                action,
+                { confirmText: 'はい', cancelText: 'いいえ', isDanger: true }
             );
         } else {
             action();
