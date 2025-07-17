@@ -438,11 +438,39 @@ body {
 .toolbar-button:hover {
   background-color: rgba(255,255,255,0.1);
 }
-.toolbar-button .icon-placeholder {
-  font-size: 1.5em;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.toolbar-button span {
+    font-size: 0.75em;
+}
+
+.toolbar-button-center {
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 50% !important;
+    background: var(--accent-gradient) !important;
+    color: white !important;
+    transform: translateY(-15px);
+    border: 3px solid var(--primary-bg) !important;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+.toolbar-button-center:hover {
+    transform: translateY(-15px) scale(1.05);
+}
+
+.toolbar-button-center .icon-placeholder {
+    font-size: 1.8em !important;
+    background: none !important;
+    -webkit-text-fill-color: white !important;
+}
+
+.toolbar-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: transparent !important;
+}
+
+.toolbar-button:disabled:hover {
+    background-color: transparent !important;
 }
 
 .footer-credits {

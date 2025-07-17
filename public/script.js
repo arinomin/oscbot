@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const presetStatusContainer = document.getElementById('preset-status-container');
     const currentPresetStatus = document.getElementById('current-preset-status');
     const manualSaveButton = document.getElementById('manual-save-button');
+    const footerSaveButton = document.getElementById('footer-save-button');
     const newPresetButton = document.getElementById('new-preset-button');
     const fxSlotsContainer = document.getElementById('fx-slots-container');
     const fxEditModal = document.getElementById('fx-edit-modal');
@@ -344,6 +345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadDataButton.onclick = openLoadPresetModal;
         newPresetButton.onclick = () => openNewPresetModal(false);
         manualSaveButton.onclick = manualSave;
+        footerSaveButton.onclick = manualSave;
         currentPresetStatus.addEventListener('click', () => {
             if (currentlyLoadedPresetDocId && currentUser) {
                 openEditPresetMetadataModal(currentlyLoadedPresetDocId);
@@ -1252,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     onCancel: () => { // onCancel: Discard
                         clearLocalBackup();
                         showToast('バックアップを破棄しました。', 'info');
-                        updatePresetStatus('新規シーケンス');
+                        updatePresetStatus('新規シーケンス', false, false);
                     },
                     confirmText: '復元する',
                     cancelText: '破棄する'
@@ -1323,6 +1325,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updatePresetStatus(text, isSaved, isDirty = false) {
         const manualSaveButton = document.getElementById('manual-save-button');
+        const footerSaveButton = document.getElementById('footer-save-button');
         let statusText = text || '新規シーケンス';
         const baseName = statusText.replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
 
@@ -1333,6 +1336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!currentUser && !isDirty) { // Not logged in and no changes
             presetStatusContainer.style.display = 'none';
+            footerSaveButton.disabled = true;
             return;
         }
 
@@ -1340,18 +1344,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusText = `✓ ${baseName}`;
             manualSaveButton.textContent = '保存済み';
             manualSaveButton.disabled = true;
+            footerSaveButton.disabled = true;
         } else if (text === '保存中...') {
             statusText = '保存中...';
             manualSaveButton.textContent = '保存中...';
             manualSaveButton.disabled = true;
+            footerSaveButton.disabled = true;
         } else if (isDirty) {
             statusText = `${baseName} *`;
             manualSaveButton.textContent = '保存';
             manualSaveButton.disabled = false;
+            footerSaveButton.disabled = false;
         } else { // Not dirty, not saved (e.g., just loaded)
             statusText = baseName;
             manualSaveButton.textContent = '保存';
             manualSaveButton.disabled = true; // Nothing to save yet
+            footerSaveButton.disabled = true;
         }
 
         currentPresetStatus.textContent = statusText;
