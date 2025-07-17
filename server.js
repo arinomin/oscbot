@@ -1,37 +1,14 @@
 
 const express = require('express');
 const path = require('path');
-const he = require('he');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// JSONリクエストのパース
-app.use(express.json());
-
-// 入力サニタイゼーションミドルウェア
-function sanitizeInput(req, res, next) {
-  // Firebase設定エンドポイントはサニタイズを除外
-  if (req.path === '/api/firebase-config') {
-    return next();
-  }
-  
-  if (req.body) {
-    for (const key in req.body) {
-      if (typeof req.body[key] === 'string') {
-        req.body[key] = he.escape(req.body[key]);
-      }
-    }
-  }
-  next();
-}
-
-app.use(sanitizeInput);
-
 // 静的ファイルの配信
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Firebase設定をクライアントに安全に配信するエンドポイント（サニタイズ除外）
+// Firebase設定をクライアントに安全に配信するエンドポイント
 app.get('/api/firebase-config', (req, res) => {
   const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,

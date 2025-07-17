@@ -5,16 +5,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // サニタイゼーション関数
-    function sanitizeInput(input) {
-        if (typeof input !== 'string') return input;
-        return DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-    }
-
-    function sanitizeHTML(html) {
-        return DOMPurify.sanitize(html);
-    }
-
     // Firebase configuration from server
     let firebaseConfig = null;
     try {
@@ -1267,9 +1257,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         const editingId = savePresetModal.dataset.editingId;
         const presetData = {
-            name: sanitizeInput(name),
-            description: sanitizeInput(document.getElementById('preset-description').value.trim()),
-            tags: document.getElementById('preset-tags').value.trim().split(',').map(t => sanitizeInput(t.trim())).filter(t => t),
+            name: name,
+            description: document.getElementById('preset-description').value.trim(),
+            tags: document.getElementById('preset-tags').value.trim().split(',').map(t => t.trim()).filter(t => t),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
 
@@ -1348,11 +1338,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const item = document.createElement('li');
                     item.className = 'preset-list-item';
                     item.innerHTML = `
-                        <h3>${sanitizeHTML(preset.name)}</h3>
-                        <p>${sanitizeHTML(preset.description || '説明なし')}</p>
-                        <div class="tags">${(preset.tags || []).map(t => `<span class="tag">${sanitizeHTML(t)}</span>`).join('')}</div>
+                        <h3>${preset.name}</h3>
+                        <p>${preset.description || '説明なし'}</p>
+                        <div class="tags">${(preset.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
                         <div class="actions">
-                            <button class="action-button edit">名前を変更</button>
+                            <button class="action-button edit">編集</button>
                             <button class="action-button delete">削除</button>
                             <button class="action-button load">読込</button>
                         </div>
@@ -1383,10 +1373,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             const preset = doc.data();
-            
-            // プリセット読込モーダルを閉じる
-            closeLoadPresetModal();
-            
             document.getElementById('preset-name').value = preset.name;
             document.getElementById('preset-description').value = preset.description || '';
             document.getElementById('preset-tags').value = (preset.tags || []).join(', ');
@@ -1476,31 +1462,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         userInfo.style.display = 'none';
     }
 
-    loginButton.addEventListener('click', async () => {
-        // 重複クリック防止
-        if (loginButton.disabled) return;
-        
-        loginButton.disabled = true;
-        loginButton.textContent = 'ログイン中...';
-        
-        try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            provider.addScope('email');
-            provider.addScope('profile');
-            
-            const result = await auth.signInWithPopup(provider);
-            console.log('Login successful:', result.user);
-        } catch (error) {
-            console.error('Login error:', error);
-            if (error.code === 'auth/cancelled-popup-request') {
-                showToast('ログインがキャンセルされました。もう一度お試しください。', 'warning');
-            } else if (error.code !== 'auth/popup-closed-by-user') {
+    loginButton.addEventListener('click', () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(error => {
+            if (error.code !== 'auth/popup-closed-by-user') {
                 showToast('ログインに失敗しました: ' + error.message, 'error');
             }
-        } finally {
-            loginButton.disabled = false;
-            loginButton.textContent = 'Googleでログイン';
-        }
+        });
     });
 
     logoutButton.addEventListener('click', () => {
