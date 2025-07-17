@@ -74,26 +74,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showConfirmationModal(message, onConfirm, options = {}) {
         confirmationModalMessage.textContent = message;
 
-        const confirmAction = () => {
+        confirmButton.onclick = () => {
             if (onConfirm) onConfirm();
             closeModalHelper(confirmationModal);
         };
-        const cancelAction = () => {
-            if (options.onCancel) options.onCancel();
-            closeModalHelper(confirmationModal);
-        };
-        const alternativeAction = () => {
-            if (options.onAlternative) options.onAlternative();
-            closeModalHelper(confirmationModal);
-        };
 
-        confirmButton.onclick = confirmAction;
-        
+        cancelButton.onclick = () => {
+            if (options.onCancel) {
+                options.onCancel();
+            }
+            closeModalHelper(confirmationModal);
+        };
 
         if (options.onAlternative) {
             alternativeButton.style.display = 'inline-block';
             alternativeButton.textContent = options.alternativeText || '選択肢';
-            alternativeButton.onclick = alternativeAction;
+            alternativeButton.onclick = () => {
+                if (options.onAlternative) options.onAlternative();
+                closeModalHelper(confirmationModal);
+            };
         } else {
             alternativeButton.style.display = 'none';
         }
