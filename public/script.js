@@ -5,6 +5,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // サニタイゼーション関数
+    function sanitizeInput(input) {
+        if (typeof input !== 'string') return input;
+        return DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    }
+
+    function sanitizeHTML(html) {
+        return DOMPurify.sanitize(html);
+    }
+
     // Firebase configuration from server
     let firebaseConfig = null;
     try {
@@ -1257,9 +1267,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         const editingId = savePresetModal.dataset.editingId;
         const presetData = {
-            name: name,
-            description: document.getElementById('preset-description').value.trim(),
-            tags: document.getElementById('preset-tags').value.trim().split(',').map(t => t.trim()).filter(t => t),
+            name: sanitizeInput(name),
+            description: sanitizeInput(document.getElementById('preset-description').value.trim()),
+            tags: document.getElementById('preset-tags').value.trim().split(',').map(t => sanitizeInput(t.trim())).filter(t => t),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
 
@@ -1338,9 +1348,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const item = document.createElement('li');
                     item.className = 'preset-list-item';
                     item.innerHTML = `
-                        <h3>${preset.name}</h3>
-                        <p>${preset.description || '説明なし'}</p>
-                        <div class="tags">${(preset.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+                        <h3>${sanitizeHTML(preset.name)}</h3>
+                        <p>${sanitizeHTML(preset.description || '説明なし')}</p>
+                        <div class="tags">${(preset.tags || []).map(t => `<span class="tag">${sanitizeHTML(t)}</span>`).join('')}</div>
                         <div class="actions">
                             <button class="action-button edit">編集</button>
                             <button class="action-button delete">削除</button>
