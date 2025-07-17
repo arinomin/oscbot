@@ -1472,13 +1472,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         userInfo.style.display = 'none';
     }
 
-    loginButton.addEventListener('click', () => {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(error => {
-            if (error.code !== 'auth/popup-closed-by-user') {
+    loginButton.addEventListener('click', async () => {
+        // 重複クリック防止
+        if (loginButton.disabled) return;
+        
+        loginButton.disabled = true;
+        loginButton.textContent = 'ログイン中...';
+        
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('email');
+            provider.addScope('profile');
+            
+            // 既存のポップアップがある場合はクリーンアップ
+            await auth.signOut().catch(() => {}); // 無視
+            
+            await auth.signInWithPopup(provider);
+        } catch (error) {
+            console.error('Login error:', error);
+            if (error.code === 'auth/cancelled-popup-request') {
+                showToast('ログインがキャンセルされました。もう一度お試しください。', 'warning');
+            } else if (error.code !== 'auth/popup-closed-by-user') {
                 showToast('ログインに失敗しました: ' + error.message, 'error');
             }
-        });
+        } finally {
+            loginButton.disabled = false;
+            loginButton.textContent = 'Googleでログイン';
+        }
     });
 
     logoutButton.addEventListener('click', () => {

@@ -11,6 +11,11 @@ app.use(express.json());
 
 // 入力サニタイゼーションミドルウェア
 function sanitizeInput(req, res, next) {
+  // Firebase設定エンドポイントはサニタイズを除外
+  if (req.path === '/api/firebase-config') {
+    return next();
+  }
+  
   if (req.body) {
     for (const key in req.body) {
       if (typeof req.body[key] === 'string') {
@@ -26,7 +31,7 @@ app.use(sanitizeInput);
 // 静的ファイルの配信
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Firebase設定をクライアントに安全に配信するエンドポイント
+// Firebase設定をクライアントに安全に配信するエンドポイント（サニタイズ除外）
 app.get('/api/firebase-config', (req, res) => {
   const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
