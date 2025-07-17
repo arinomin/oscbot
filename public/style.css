@@ -1016,13 +1016,14 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
     justify-content: center;
 }
 .confirmation-buttons button {
-    padding: 10px 20px;
+    padding: 10px 15px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     width: auto;
     margin-top: 0;
-    min-width: 100px;
+    min-width: 90px;
+    font-size: 0.9em;
     transition: all 0.2s ease;
 }
 .modal-secondary-action-button {
