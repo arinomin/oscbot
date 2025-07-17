@@ -1383,6 +1383,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             const preset = doc.data();
+            
+            // プリセット読込モーダルを閉じる
+            closeLoadPresetModal();
+            
             document.getElementById('preset-name').value = preset.name;
             document.getElementById('preset-description').value = preset.description || '';
             document.getElementById('preset-tags').value = (preset.tags || []).join(', ');
