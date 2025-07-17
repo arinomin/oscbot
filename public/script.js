@@ -1010,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function openRandomGenerateModal() { openModal(randomGenerateModal); }
     function closeRandomGenerateModal() { closeModalHelper(randomGenerateModal); }
 
-    async function createNewPreset() {
+    async function createNewPreset(isSavingCurrentState = false) {
         if (!currentUser) {
             showToast('ログインが必要です。', 'error');
             return;
@@ -1021,14 +1021,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Reset the sequencer state to default
-        resetSequencerToDefault();
+        // If not saving the current state, reset the sequencer to default first.
+        if (!isSavingCurrentState) {
+            resetSequencerToDefault();
+        }
 
         const newPresetData = {
             name: name,
             description: document.getElementById('preset-description').value.trim(),
             tags: document.getElementById('preset-tags').value.trim().split(',').map(t => t.trim()).filter(t => t),
-            ...getCurrentState(), // Get the default state
+            ...getCurrentState(), // This will now get either the current state or the reset state
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
@@ -1067,32 +1069,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         // initializeFxNodes();
     }
 
-    function openNewPresetModal() {
+    function openNewPresetModal(isSavingCurrentState = false) {
         if (!currentUser) {
             showLoginPromptModal();
             return;
         }
-        // Reset and repurpose the save preset modal for new creation
-        const presetNameInput = document.getElementById('preset-name');
-        const presetDescriptionInput = document.getElementById('preset-description');
-        const presetTagsInput = document.getElementById('preset-tags');
-        const saveButton = document.getElementById('save-preset-button');
-        const modalTitle = savePresetModal.querySelector('h3');
 
-        delete savePresetModal.dataset.editingId;
-        const existingOverwriteBtn = document.getElementById('overwrite-preset-button');
-        if(existingOverwriteBtn) existingOverwriteBtn.remove();
+        const action = () => {
+            const presetNameInput = document.getElementById('preset-name');
+            const presetDescriptionInput = document.getElementById('preset-description');
+            const presetTagsInput = document.getElementById('preset-tags');
+            const saveButton = document.getElementById('save-preset-button');
+            const modalTitle = savePresetModal.querySelector('h3');
 
-        modalTitle.textContent = '新規プリセット作成';
-        presetNameInput.value = '';
-        presetDescriptionInput.value = '';
-        presetTagsInput.value = '';
-        saveButton.textContent = '作成して開始';
-        
-        // Ensure the main button handles creation
-        saveButton.onclick = createNewPreset; 
+            delete savePresetModal.dataset.editingId;
+            const existingOverwriteBtn = document.getElementById('overwrite-preset-button');
+            if(existingOverwriteBtn) existingOverwriteBtn.remove();
 
-        openModal(savePresetModal);
+            modalTitle.textContent = '新規プリセット作成';
+            presetNameInput.value = '';
+            presetDescriptionInput.value = '';
+            presetTagsInput.value = '';
+            saveButton.textContent = '作成して保存';
+            
+            saveButton.onclick = () => createNewPreset(isSavingCurrentState);
+
+            openModal(savePresetModal);
+        };
+
+        if (!isSavingCurrentState && currentlyLoadedPresetDocId) { // If editing a preset, confirm before creating a new one
+            showConfirmationModal(
+                '現在の編集内容を破棄して、新しいプリセットを作成しますか？',
+                () => {
+                    action();
+                },
+                { confirmText: 'はい', cancelText: 'いいえ' }
+            );
+        } else {
+            action();
+        }
     }
 
     function executeRandomGeneration() {
@@ -1218,25 +1233,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function markAsDirty() {
-        saveLocalBackup();
-        if (currentlyLoadedPresetDocId) { // Only show dirty status for saved presets
-            updatePresetStatus(currentPresetStatus.textContent, false, true);
-        }
-
-        if (!currentUser || !currentlyLoadedPresetDocId) return;
-
-        if (autoSaveTimer) clearTimeout(autoSaveTimer);
-        autoSaveTimer = setTimeout(() => performSave(true), 10000); // Pass true for auto-save
+    saveLocalBackup();
+    if (currentlyLoadedPresetDocId) {
+        updatePresetStatus(currentPresetStatus.textContent, false, true);
+    } else {
+        updatePresetStatus('新規シーケンス', false, true);
     }
 
+    // Auto-save only for loaded presets
+    if (!currentUser || !currentlyLoadedPresetDocId) return;
+
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => performSave(true), 10000);
+}
+
     function manualSave() {
-        if (!currentUser || !currentlyLoadedPresetDocId) {
-            // If no preset is loaded, this button should probably open the 'new preset' modal.
+        if (!currentUser) {
             openNewPresetModal();
             return;
         }
-        if (autoSaveTimer) clearTimeout(autoSaveTimer);
-        performSave(false); // Pass false for manual save
+        if (currentlyLoadedPresetDocId) {
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
+            performSave(false); // Manual save for existing preset
+        } else {
+            // This is a new, unsaved sequence. Open the modal to save it for the first time.
+            openNewPresetModal(true); // Pass a flag to indicate it's saving the current state
+        }
     }
 
     async function performSave(isAutoSave) {
@@ -1268,7 +1290,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         let statusText = text || '新規シーケンス';
         const baseName = statusText.replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
 
-        if (text === null || !currentUser) {
+        if (text === null) { // Explicitly hiding
+            presetStatusContainer.style.display = 'none';
+            return;
+        }
+
+        if (!currentUser && !isDirty) { // Not logged in and no changes
             presetStatusContainer.style.display = 'none';
             return;
         }
@@ -1285,6 +1312,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusText = `${baseName} *`;
             manualSaveButton.textContent = '保存';
             manualSaveButton.disabled = false;
+        } else { // Not dirty, not saved (e.g., just loaded)
+            statusText = baseName;
+            manualSaveButton.textContent = '保存';
+            manualSaveButton.disabled = true; // Nothing to save yet
         }
 
         currentPresetStatus.textContent = statusText;
