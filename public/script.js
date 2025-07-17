@@ -1032,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function openRandomGenerateModal() { openModal(randomGenerateModal); }
     function closeRandomGenerateModal() { closeModalHelper(randomGenerateModal); }
 
-    async function createNewPreset(isSavingCurrentState = false) {
+    async function createNewPreset(isSavingCurrentState) { // isSavingCurrentState is kept for compatibility but is effectively always true now
         if (!currentUser) {
             showToast('ログインが必要です。', 'error');
             return;
@@ -1043,8 +1043,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // If not saving the current state, reset the sequencer to default first.
+        // The logic is now unified: we always save the current state to a new document.
         if (!isSavingCurrentState) {
+            // This block is now less likely to be used, but kept for safety.
             resetSequencerToDefault();
         }
 
@@ -1052,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: name,
             description: document.getElementById('preset-description').value.trim(),
             tags: document.getElementById('preset-tags').value.trim().split(',').map(t => t.trim()).filter(t => t),
-            ...getCurrentState(), // This will now get either the current state or the reset state
+            ...getCurrentState(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
@@ -1120,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             presetDescriptionInput.value = '';
             presetTagsInput.value = '';
 
-            saveButton.onclick = () => createNewPreset(isSavingCurrentState);
+            saveButton.onclick = () => createNewPreset(true); // Always save current state from this flow
 
             openModal(savePresetModal);
         };
@@ -1290,16 +1291,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
     function manualSave() {
+        // If not logged in, the modal will handle the login prompt.
+        // We always intend to save the current state when this button is pressed.
         if (!currentUser) {
-            openNewPresetModal();
+            openNewPresetModal(true);
             return;
         }
+
         if (currentlyLoadedPresetDocId) {
+            // A preset is loaded. Show options: Overwrite or Save As.
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
-            performSave(false); // Manual save for existing preset
+            
+            showConfirmationModal(
+                '現在のプリセットへの保存方法を選択してください。',
+                () => { // onConfirm: Overwrite
+                    performSave(false);
+                },
+                {
+                    onAlternative: () => { // onAlternative: Save As...
+                        openNewPresetModal(true);
+                    },
+                    confirmText: '上書き保存',
+                    alternativeText: '別名で保存',
+                    cancelText: 'キャンセル'
+                }
+            );
         } else {
-            // This is a new, unsaved sequence. Open the modal to save it for the first time.
-            openNewPresetModal(true); // Pass a flag to indicate it's saving the current state
+            // This is a new, unsaved sequence. Open the "Save As" modal.
+            openNewPresetModal(true);
         }
     }
 
