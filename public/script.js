@@ -1303,7 +1303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
             
             showConfirmationModal(
-                '現在のプリセットへの保存方法を選択してください。',
+                '現在のプリセットの保存方法を選択してください',
                 () => { // onConfirm: Overwrite
                     performSave(false);
                 },

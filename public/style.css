@@ -97,8 +97,6 @@ body {
 
 #current-preset-status.editable {
     cursor: pointer;
-    text-decoration: underline;
-    text-decoration-style: dotted;
 }
 
 #current-preset-status.editable:hover {
