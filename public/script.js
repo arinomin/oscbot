@@ -1352,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <p>${sanitizeHTML(preset.description || '説明なし')}</p>
                         <div class="tags">${(preset.tags || []).map(t => `<span class="tag">${sanitizeHTML(t)}</span>`).join('')}</div>
                         <div class="actions">
-                            <button class="action-button edit">編集</button>
+                            <button class="action-button edit">名前を変更</button>
                             <button class="action-button delete">削除</button>
                             <button class="action-button load">読込</button>
                         </div>
