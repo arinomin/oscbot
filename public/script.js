@@ -1484,10 +1484,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             provider.addScope('email');
             provider.addScope('profile');
             
-            // 既存のポップアップがある場合はクリーンアップ
-            await auth.signOut().catch(() => {}); // 無視
-            
-            await auth.signInWithPopup(provider);
+            const result = await auth.signInWithPopup(provider);
+            console.log('Login successful:', result.user);
         } catch (error) {
             console.error('Login error:', error);
             if (error.code === 'auth/cancelled-popup-request') {
