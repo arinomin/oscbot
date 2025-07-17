@@ -95,6 +95,16 @@ body {
     max-width: 150px; /* Adjust as needed */
 }
 
+#current-preset-status.editable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+}
+
+#current-preset-status.editable:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
 .manual-save-button {
     background: var(--accent-gradient);
     color: white;

@@ -342,8 +342,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         bulkEditTriggerButton.onclick = openBulkEditModal;
         randomGenerateTriggerButton.onclick = openRandomGenerateModal;
         loadDataButton.onclick = openLoadPresetModal;
-        newPresetButton.onclick = openNewPresetModal;
+        newPresetButton.onclick = () => openNewPresetModal(false);
         manualSaveButton.onclick = manualSave;
+        currentPresetStatus.addEventListener('click', () => {
+            if (currentlyLoadedPresetDocId && currentUser) {
+                openEditPresetMetadataModal(currentlyLoadedPresetDocId);
+            }
+        });
         bpmAdjustButtons.forEach(button => button.addEventListener('click', () => {
             adjustBpm(parseInt(button.dataset.step));
             updateActiveBpmSyncFx();
@@ -1351,6 +1356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         currentPresetStatus.textContent = statusText;
         presetStatusContainer.style.display = 'flex';
+        currentPresetStatus.classList.toggle('editable', !!currentlyLoadedPresetDocId && !!currentUser);
     }
 
     async function openSavePresetModal(isForClone = false) {
