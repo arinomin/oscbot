@@ -1342,7 +1342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <p>${preset.description || '説明なし'}</p>
                         <div class="tags">${(preset.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
                         <div class="actions">
-                            <button class="action-button edit">編集</button>
+                            <button class="action-button edit">名前を変更</button>
                             <button class="action-button delete">削除</button>
                             <button class="action-button load">読込</button>
                         </div>
@@ -1382,6 +1382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const existingOverwriteBtn = document.getElementById('overwrite-preset-button');
             if(existingOverwriteBtn) existingOverwriteBtn.remove();
 
+            closeLoadPresetModal(); // Close the load modal first
             openModal(savePresetModal);
         } catch (error) {
             showToast('プリセット情報の取得に失敗しました。', 'error');
