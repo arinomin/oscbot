@@ -197,15 +197,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     type: 'buttons',
                     value: 4, // Default to 1/16
                     options: [
-                        { value: 0.5, label: '1/2' },
-                        { value: 0.75, label: '1/2 3' },
-                        { value: 1, label: '1/4' },
-                        { value: 1 / 1.5, label: '1/4.'},
-                        { value: 1.5, label: '1/4 3' },
-                        { value: 2, label: '1/8' },
-                        { value: 2 / 1.5, label: '1/8.'},
-                        { value: 3, label: '1/8 3' },
-                        { value: 4, label: '1/16' },
+                        { value: 0.5, label: '2分' },
+                        { value: 0.75, label: '2分3連符' },
+                        { value: 1, label: '4分' },
+                        { value: 1 / 1.5, label: '付点4分'},
+                        { value: 1.5, label: '4分3連符' },
+                        { value: 2, label: '8分' },
+                        { value: 2 / 1.5, label: '付点8分'},
+                        { value: 3, label: '8分3連符' },
+                        { value: 4, label: '16分' },
                     ]
                 }
             },
@@ -220,15 +220,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     type: 'buttons',
                     value: 4, // Default to 1/16
                     options: [
-                        { value: 1, label: '1/4' },
-                        { value: 1.5, label: '1/4 3' },
-                        { value: 2, label: '1/8' },
-                        { value: 2 / 1.5, label: '1/8.'},
-                        { value: 3, label: '1/8 3' },
-                        { value: 4, label: '1/16' },
-                        { value: 4 / 1.5, label: '1/16.'},
-                        { value: 6, label: '1/16 3' },
-                        { value: 8, label: '1/32' },
+                        { value: 1, label: '4分' },
+                        { value: 1.5, label: '4分3連符' },
+                        { value: 2, label: '8分' },
+                        { value: 2 / 1.5, label: '付点8分'},
+                        { value: 3, label: '8分3連符' },
+                        { value: 4, label: '16分' },
+                        { value: 4 / 1.5, label: '付点16分'},
+                        { value: 6, label: '16分3連符' },
+                        { value: 8, label: '32分' },
                     ]
                 }
             },
