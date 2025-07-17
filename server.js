@@ -1,8 +1,10 @@
 
 const express = require('express');
 const path = require('path');
+const helmet = require('helmet');
 
 const app = express();
+app.use(helmet());
 const PORT = process.env.PORT || 5000;
 
 // 静的ファイルの配信
