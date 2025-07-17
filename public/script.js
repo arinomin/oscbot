@@ -72,20 +72,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function showConfirmationModal(message, onConfirm, options = {}) {
         confirmationModalMessage.textContent = message;
-        confirmButton.onclick = () => { if (onConfirm) onConfirm(); closeModalHelper(confirmationModal); };
+
+        const confirmAction = () => {
+            if (onConfirm) onConfirm();
+            closeModalHelper(confirmationModal);
+        };
+        const cancelAction = () => {
+            if (options.onCancel) options.onCancel();
+            closeModalHelper(confirmationModal);
+        };
+        const alternativeAction = () => {
+            if (options.onAlternative) options.onAlternative();
+            closeModalHelper(confirmationModal);
+        };
+
+        confirmButton.onclick = confirmAction;
+        
+
         if (options.onAlternative) {
             alternativeButton.style.display = 'inline-block';
             alternativeButton.textContent = options.alternativeText || '選択肢';
-            alternativeButton.onclick = () => { options.onAlternative(); closeModalHelper(confirmationModal); };
+            alternativeButton.onclick = alternativeAction;
         } else {
             alternativeButton.style.display = 'none';
         }
+        
         confirmButton.textContent = options.confirmText || 'OK';
         cancelButton.textContent = options.cancelText || 'キャンセル';
         confirmButton.classList.toggle('danger', !!options.isDanger);
         openModal(confirmationModal);
     }
-    cancelButton.onclick = () => closeModalHelper(confirmationModal);
     setupModalListeners(confirmationModal, () => closeModalHelper(confirmationModal));
 
     function showLoginPromptModal() {
@@ -1214,14 +1230,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const backupJSON = localStorage.getItem(LOCAL_BACKUP_KEY);
             if (!backupJSON) {
-                updatePresetStatus('新規シーケンス'); // Show initial status
+                updatePresetStatus('新規シーケンス');
                 return;
             }
             const backup = JSON.parse(backupJSON);
-            // Do not prompt, just load it. The user can always create a new one.
-            applyState(backup);
-            markAsDirty(); // Mark as dirty to enable saving
-            showToast('前回の未保存の作業を復元しました。', 'info');
+            const lastSaved = new Date(backup.timestamp).toLocaleString();
+
+            showConfirmationModal(
+                `未保存の作業データが見つかりました。（最終更新: ${lastSaved}）復元しますか？`,
+                () => { // onConfirm: Restore
+                    applyState(backup);
+                    markAsDirty();
+                    showToast('作業を復元しました。', 'info');
+                },
+                {
+                    onCancel: () => { // onCancel: Discard
+                        clearLocalBackup();
+                        showToast('バックアップを破棄しました。', 'info');
+                        updatePresetStatus('新規シーケンス');
+                    },
+                    confirmText: '復元する',
+                    cancelText: '破棄する'
+                }
+            );
         } catch (e) {
             console.error("Error loading local backup:", e);
             clearLocalBackup();
