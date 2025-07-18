@@ -1,34 +1,14 @@
 
 const express = require('express');
 const path = require('path');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 
 const app = express();
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "script-src": ["'self'", "https://www.gstatic.com", "https://*.firebaseio.com", "https://apis.google.com"],
-        "frame-src": ["'self'", "https://*.firebaseapp.com"],
-      },
-    },
-  })
-);
 const PORT = process.env.PORT || 5000;
 
 // 静的ファイルの配信
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Firebase設定をクライアントに安全に配信するエンドポイント
-const apiLimiter = rateLimit({
-	windowMs: 15 * 60 * 1000, // 15 minutes
-	max: 100, // Limit each IP to 100 requests per windowMs
-	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-})
-app.use('/api', apiLimiter)
 app.get('/api/firebase-config', (req, res) => {
   const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
