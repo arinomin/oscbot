@@ -56,6 +56,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fxParamsContainer = document.getElementById('fx-params-container');
     const fxModalCompleteButton = document.getElementById('fx-modal-complete-button');
 
+    const helpButton = document.getElementById('help-button');
+    const helpModal = document.getElementById('help-modal');
+
     const confirmationModal = document.getElementById('confirmation-modal');
     const confirmationModalMessage = document.getElementById('confirmation-modal-message');
     const confirmButton = document.getElementById('confirmation-modal-confirm-button');
@@ -368,6 +371,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupModalListeners(savePresetModal, closeSavePresetModal);
         setupModalListeners(loadPresetModal, closeLoadPresetModal);
         setupModalListeners(fxEditModal, closeFxEditModal);
+        setupModalListeners(helpModal, () => closeModalHelper(helpModal));
+
+        helpButton.onclick = () => openModal(helpModal);
         fxModalCompleteButton.onclick = saveFxSlotChanges;
         fxTypeSelect.onchange = handleFxTypeChange;
         document.getElementById('modal-volume').oninput = (e) => {

@@ -40,6 +40,7 @@
                 </div>
             </div>
             <div class="auth-section">
+                <button id="help-button" class="header-icon-button"><i class="fa-solid fa-circle-question"></i></button>
                 <div id="user-info" style="display: none;">
                     <span id="user-name"></span>
                     <button id="logout-button"><i class="fa-solid fa-right-from-bracket"></i></button>
@@ -288,6 +289,29 @@
                 <button id="confirmation-modal-alternative-button" class="modal-secondary-action-button" style="display: none;"></button>
                 <button id="confirmation-modal-cancel-button" class="modal-secondary-action-button">キャンセル</button>
                 <button id="confirmation-modal-confirm-button" class="modal-main-action-button">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h3>使い方ガイド</h3>
+            <div class="help-content">
+                <h4><i class="fa-solid fa-pencil"></i> 基本操作</h4>
+                <p><strong>ステップの編集:</strong> グリッド上の四角い「ステップ」をタップすると、音階、オクターブ、波形、音量を編集できます。</p>
+                <p><strong>再生:</strong> 画面上部の「一周だけ再生」「繰り返し再生」ボタンでシーケンスを再生します。「停止」で止まります。</p>
+                <p><strong>BPM変更:</strong> 「BPM」の数値を直接編集するか、+/-ボタンでテンポを調整できます。</p>
+
+                <h4><i class="fa-solid fa-save"></i> プリセットの保存と読込</h4>
+                <p><strong>ログイン:</strong> Googleアカウントでログインすると、作成したシーケンスを「プリセット」として保存・読込できるようになります。</p>
+                <p><strong>保存:</strong> 画面下部の「保存」ボタン、またはヘッダーの「保存」ボタンから、現在のシーケンスに名前を付けて保存できます。</p>
+                <p><strong>読込:</strong> 画面下部の「読込」ボタンから、過去に保存したプリセットを一覧表示して読み込めます。</p>
+
+                <h4><i class="fa-solid fa-wand-magic-sparkles"></i>便利な機能</h4>
+                <p><strong>ランダム生成:</strong> フッターの<i class="fa-solid fa-dice"></i>アイコンから、指定した条件でメロディーを自動生成できます。</p>
+                <p><strong>一斉変更:</strong> フッターの<i class="fa-solid fa-wand-magic-sparkles"></i>アイコンから、全ステップの音階やオクターブなどを一括で変更できます。</p>
+                <p><strong>ドラッグ＆ドロップ:</strong> ステップを長押ししてドラッグすると、他のステップと内容を入れ替えたり、上書きコピーしたりできます。</p>
             </div>
         </div>
     </div>
