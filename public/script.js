@@ -1185,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tagsInput.value = '';
             saveButton.disabled = true;
 
-            saveButton.onclick = () => createNewPreset(true); // Always save current state from this flow
+            saveButton.onclick = () => createNewPreset(true);
 
             openModal(savePresetModal);
         };
@@ -1206,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         action();
                     },
                     cancelText: '破棄して続行',
-                    onAlternative: () { /* Do nothing, just close the modal */ },
+                    onAlternative: () => { /* Do nothing, just close the modal */ },
                     alternativeText: 'キャンセル',
                     isDanger: false
                 }
