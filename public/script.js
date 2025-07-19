@@ -1090,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function openRandomGenerateModal() { openModal(randomGenerateModal); }
     function closeRandomGenerateModal() { closeModalHelper(randomGenerateModal); }
 
-    async function createNewPreset(isSavingCurrentState) { // isSavingCurrentState is kept for compatibility but is effectively always true now
+    async function createNewPreset(isSavingCurrentState, onSaveCompleteCallback = null) { // isSavingCurrentState is kept for compatibility but is effectively always true now
         if (!currentUser) {
             showToast('ログインが必要です。', 'error');
             return;
@@ -1126,6 +1126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updatePresetStatus(name, true);
             clearLocalBackup();
             closeSavePresetModal();
+            if (onSaveCompleteCallback) onSaveCompleteCallback();
         } catch (error) {
             showToast(`プリセットの作成に失敗しました: ${error.message}`, 'error');
             console.error("Error creating new preset: ", error);
@@ -1153,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // initializeFxNodes();
     }
 
-    function openNewPresetModal(isSavingCurrentState = false) {
+    function openNewPresetModal(isSavingCurrentState = false, onSaveCompleteCallback = null) {
         if (!currentUser) {
             showLoginPromptModal();
             return;
@@ -1185,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tagsInput.value = '';
             saveButton.disabled = true;
 
-            saveButton.onclick = () => createNewPreset(true);
+            saveButton.onclick = () => createNewPreset(true, onSaveCompleteCallback);
 
             openModal(savePresetModal);
         };
@@ -1195,7 +1196,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             showConfirmationModal(
                 '新規作成します。\n現在の編集内容は保存しますか？',
                 () => { // onConfirm: Save and Continue
-                    manualSave();
+                    manualSave(() => {
+                        resetSequencerToDefault();
+                        updatePresetStatus('新規シーケンス', false, false);
+                        clearLocalBackup();
+                    });
                 },
                 {
                     confirmText: '保存して続行',
@@ -1368,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     autoSaveTimer = setTimeout(() => performSave(true), 10000);
 }
 
-    function manualSave() {
+    function manualSave(onSaveCompleteCallback = null) {
         // If not logged in, the modal will handle the login prompt.
         // We always intend to save the current state when this button is pressed.
         if (!currentUser) {
@@ -1383,7 +1388,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showConfirmationModal(
                 '現在のプリセットの保存方法を選択してください',
                 () => { // onConfirm: Overwrite
-                    performSave(false);
+                    performSave(false, onSaveCompleteCallback);
                 },
                 {
                     onAlternative: () => { // onAlternative: Save As...
@@ -1396,11 +1401,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             );
         } else {
             // This is a new, unsaved sequence. Open the "Save As" modal.
-            openNewPresetModal(true);
+            openNewPresetModal(true, onSaveCompleteCallback);
         }
     }
 
-    async function performSave(isAutoSave) {
+    async function performSave(isAutoSave, onSaveCompleteCallback = null) {
         if (!currentUser || !currentlyLoadedPresetDocId) return;
         
         const statusTextBeforeSave = currentPresetStatus.textContent;
@@ -1417,6 +1422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast(`「${presetName}」を保存しました。`, 'success');
             }
             clearLocalBackup();
+            if (onSaveCompleteCallback) onSaveCompleteCallback();
         } catch (error) {
             showToast(`保存に失敗: ${error.message}`, 'error');
             console.error("Save error: ", error);
