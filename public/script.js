@@ -935,6 +935,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    let previewTimeoutId = null;
+    let activePreviewOscillators = [];
+
     function stopAllSounds() {
         isPlaying = false;
         isLooping = false;
@@ -951,6 +954,105 @@ document.addEventListener('DOMContentLoaded', async () => {
         activeOscillators = [];
         document.querySelectorAll('.playback-block.playing').forEach(el => el.classList.remove('playing'));
         currentStep = 0;
+        stopPresetPreview(); // Stop preview as well
+    }
+
+    function stopPresetPreview() {
+        if (previewTimeoutId) clearTimeout(previewTimeoutId);
+        previewTimeoutId = null;
+        const now = audioCtx.currentTime;
+        activePreviewOscillators.forEach(({ gainNode }) => {
+            try {
+                gainNode.gain.cancelScheduledValues(now);
+                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.02);
+            } catch (e) { /* ignore */ }
+        });
+        activePreviewOscillators = [];
+        // Also remove visual indicator from preview button
+        document.querySelectorAll('.action-button.preview.playing').forEach(btn => {
+            btn.classList.remove('playing');
+            btn.innerHTML = '<i class="fa-solid fa-play"></i> 試聴';
+        });
+    }
+
+    function playPresetPreview(preset) {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        
+        const isCurrentlyPlaying = activePreviewOscillators.length > 0;
+
+        stopPresetPreview();
+
+        if (isCurrentlyPlaying) {
+            return; 
+        }
+
+        const previewButton = event.target.closest('.action-button.preview');
+        if (previewButton) {
+            previewButton.classList.add('playing');
+            previewButton.innerHTML = '<i class="fa-solid fa-stop"></i> 停止';
+        }
+
+        let localCurrentStep = 0;
+        let localNextStepTime = audioCtx.currentTime + 0.05;
+        const sequence = preset.sequenceData || [];
+        const maxSteps = preset.sequenceMax || 16;
+        const noteDur = preset.noteDuration || 1;
+        const bpm = preset.bpm || 120;
+
+        const schedule = () => {
+            const stepDurSec = (60 / bpm) * noteDur;
+
+            while (localNextStepTime < audioCtx.currentTime + 0.1) {
+                if (localCurrentStep >= maxSteps) {
+                    stopPresetPreview();
+                    return;
+                }
+
+                const data = sequence[localCurrentStep];
+                if (data && data.volume > 0) {
+                    const freq = getFrequency(data.note, data.octave);
+                    if (freq > 0) {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = data.waveform;
+                        osc.frequency.setValueAtTime(freq, localNextStepTime);
+                        
+                        const attack = 0.01;
+                        const release = Math.min(0.04, stepDurSec * 0.3);
+                        gain.gain.setValueAtTime(0, localNextStepTime);
+                        gain.gain.linearRampToValueAtTime(data.volume, localNextStepTime + attack);
+                        if (localNextStepTime + stepDurSec - release > localNextStepTime + attack) {
+                            gain.gain.setValueAtTime(data.volume, localNextStepTime + stepDurSec - release);
+                        }
+                        gain.gain.linearRampToValueAtTime(0, localNextStepTime + stepDurSec);
+                        
+                        osc.connect(gain).connect(masterGain);
+                        osc.start(localNextStepTime);
+                        osc.stop(localNextStepTime + stepDurSec + 0.01);
+                        
+                        const active = { oscillator: osc, gainNode: gain };
+                        activePreviewOscillators.push(active);
+                        setTimeout(() => {
+                            activePreviewOscillators = activePreviewOscillators.filter(o => o !== active);
+                        }, (stepDurSec + 0.1) * 1000);
+                    }
+                }
+                
+                localNextStepTime += stepDurSec;
+                localCurrentStep++;
+            }
+            
+            if (localCurrentStep < maxSteps && activePreviewOscillators.length > 0) {
+                previewTimeoutId = setTimeout(schedule, 25);
+            } else {
+                previewTimeoutId = setTimeout(stopPresetPreview, stepDurSec * 1000);
+            }
+        };
+
+        schedule();
     }
 
     function playSound(data, duration, startTime = audioCtx.currentTime) {
@@ -1434,7 +1536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const manualSaveButton = document.getElementById('manual-save-button');
         const footerSaveButton = document.getElementById('footer-save-button');
         let statusText = text || '新規シーケンス';
-        const baseName = statusText.replace(/\s*\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
+        const baseName = statusText.replace(/\s\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
 
         if (text === null) { // Explicitly hiding
             presetStatusContainer.style.display = 'none';
@@ -1601,20 +1703,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         const presetList = document.getElementById('preset-list');
         const noResultsMessage = document.getElementById('no-results-message');
         const searchTerm = document.getElementById('search-box').value.toLowerCase();
-        presetList.innerHTML = '読み込み中...';
+        presetList.innerHTML = '<div class="loading-spinner"></div>';
         
         try {
             const snapshot = await db.collection('users').doc(currentUser.uid).collection('presets').orderBy('updatedAt', 'desc').get();
             const presets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            const filteredPresets = presets.filter(p => p.name.toLowerCase().includes(searchTerm) || (p.description && p.description.toLowerCase().includes(searchTerm)));
+            const filteredPresets = presets.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) || 
+                (p.description && p.description.toLowerCase().includes(searchTerm)) ||
+                (p.tags && p.tags.some(t => t.toLowerCase().includes(searchTerm)))
+            );
 
             presetList.innerHTML = '';
             if (filteredPresets.length > 0) {
+                presetList.className = 'preset-grid';
+
                 filteredPresets.forEach(preset => {
-                    const item = document.createElement('li');
-                    item.className = 'preset-list-item';
-                    item.innerHTML = ''; // Clear existing content
+                    const item = document.createElement('div');
+                    item.className = 'preset-card-item';
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'preset-card-content';
 
                     const h3 = document.createElement('h3');
                     h3.textContent = preset.name;
@@ -1622,41 +1732,53 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const p = document.createElement('p');
                     p.textContent = preset.description || '説明なし';
 
+                    const timestamp = document.createElement('span');
+                    timestamp.className = 'preset-timestamp';
+                    if (preset.updatedAt && preset.updatedAt.toDate) {
+                        timestamp.textContent = `最終更新: ${preset.updatedAt.toDate().toLocaleString()}`;
+                    }
+
                     const tagsDiv = document.createElement('div');
                     tagsDiv.className = 'tags';
                     if (preset.tags && preset.tags.length > 0) {
-                        tagsDiv.innerHTML = preset.tags.map(t => {
-                            const span = document.createElement('span');
-                            span.className = 'tag';
-                            span.textContent = t;
-                            return span.outerHTML;
-                        }).join('');
+                        tagsDiv.innerHTML = preset.tags.map(t => `<span class="tag">${t}</span>`).join('');
                     }
 
                     const actionsDiv = document.createElement('div');
                     actionsDiv.className = 'actions';
 
+                    const previewButton = document.createElement('button');
+                    previewButton.className = 'action-button preview';
+                    previewButton.innerHTML = '<i class="fa-solid fa-play"></i> 試聴';
+                    
                     const editButton = document.createElement('button');
                     editButton.className = 'action-button edit';
-                    editButton.textContent = '名前を変更';
+                    editButton.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+                    editButton.title = '名前やタグを編集';
 
                     const deleteButton = document.createElement('button');
                     deleteButton.className = 'action-button delete';
-                    deleteButton.textContent = '削除';
+                    deleteButton.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    deleteButton.title = '削除';
 
                     const loadButton = document.createElement('button');
                     loadButton.className = 'action-button load';
                     loadButton.textContent = '読込';
 
-                    actionsDiv.append(editButton, deleteButton, loadButton);
-                    item.append(h3, p, tagsDiv, actionsDiv);
-                    item.querySelector('.load').onclick = (e) => { e.stopPropagation(); loadPresetFromFirestore(preset.id); };
-                    item.querySelector('.edit').onclick = (e) => { e.stopPropagation(); openEditPresetMetadataModal(preset.id); };
-                    item.querySelector('.delete').onclick = (e) => { e.stopPropagation(); deletePresetFromFirestore(preset.id, preset.name); };
+                    actionsDiv.append(previewButton, editButton, deleteButton, loadButton);
+                    contentDiv.append(h3, p, timestamp, tagsDiv, actionsDiv);
+                    item.append(contentDiv);
+
+                    previewButton.onclick = (e) => { e.stopPropagation(); playPresetPreview(preset); };
+                    loadButton.onclick = (e) => { e.stopPropagation(); loadPresetFromFirestore(preset.id); };
+                    editButton.onclick = (e) => { e.stopPropagation(); openEditPresetMetadataModal(preset.id); };
+                    deleteButton.onclick = (e) => { e.stopPropagation(); deletePresetFromFirestore(preset.id, preset.name); };
+                    
                     presetList.appendChild(item);
                 });
                 noResultsMessage.style.display = 'none';
             } else {
+                presetList.className = 'preset-list';
                 noResultsMessage.style.display = 'block';
             }
         } catch (error) {
@@ -1711,6 +1833,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadPresetFromFirestore(presetId) {
         if (!currentUser) return;
+        stopPresetPreview();
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
             const doc = await docRef.get();
