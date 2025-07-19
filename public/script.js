@@ -1193,9 +1193,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hasUnsavedChanges = currentPresetStatus.textContent.includes('*');
         if (!isSavingCurrentState && hasUnsavedChanges) {
             showConfirmationModal(
-                '新しいプリセットを作成しますか？保存されていない編集内容は破棄されます。',
-                action,
-                { confirmText: 'はい', cancelText: 'いいえ', isDanger: true }
+                '現在の編集内容をどうしますか？',
+                () => { // onConfirm: Save and Create New
+                    manualSave(); // This will trigger the save flow
+                    // After saving, we might need a callback to then create a new one.
+                    // For now, let's handle this manually. The user can click "New" again after saving.
+                },
+                {
+                    confirmText: '保存して新規作成',
+                    onCancel: () => { // onCancel: Discard and Create New
+                        resetSequencerToDefault();
+                        updatePresetStatus('新規シーケンス', false, false);
+                        clearLocalBackup();
+                        action();
+                    },
+                    cancelText: '破棄して新規作成',
+                    onAlternative: () => { /* Do nothing, just close the modal */ },
+                    alternativeText: 'キャンセル',
+                    isDanger: false // We want the discard option to be more prominent as the cancel action
+                }
             );
         } else {
             action();
