@@ -747,6 +747,21 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
 #save-preset-modal textarea { resize: vertical; min-height: 60px; }
 
 /* --- New Save Modal Styles --- */
+.input-container {
+    margin-bottom: 20px;
+}
+.input-container > label,
+.input-with-icon > label {
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    display: block;
+}
+.emphasized-input {
+    border: 2px solid var(--accent-color-start) !important;
+    padding: 10px !important;
+    width: 100%;
+}
 .input-with-icon {
     position: relative;
     margin-bottom: 20px;
@@ -758,12 +773,6 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
     transform: translateY(-50%);
     color: var(--accent-color-end);
     font-size: 0.9em;
-}
-.input-with-icon > label {
-    font-weight: bold;
-    font-size: 0.9em;
-    margin-bottom: 8px;
-    display: block;
 }
 .input-with-icon > input,
 .input-with-icon > textarea {
@@ -780,7 +789,7 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
     background-color: var(--primary-bg);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 5px 10px 5px 0; /* Adjusted padding */
+    padding-right: 10px;
 }
 .tag-input-container .input-with-icon > i {
     position: static;
@@ -791,7 +800,7 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    flex-grow: 1;
+    margin-top: 10px; /* Add space above the tags */
 }
 .tag-badge {
     display: flex;
@@ -800,6 +809,7 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 0.85em;
+    white-space: nowrap; /* Prevent tags from wrapping */
 }
 .tag-badge .remove-tag {
     margin-left: 6px;
@@ -812,7 +822,7 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
     color: var(--text-color);
     flex-grow: 1;
     min-width: 100px;
-    padding: 5px;
+    padding: 10px 5px;
 }
 #preset-tags-input:focus {
     outline: none;
