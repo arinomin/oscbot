@@ -1527,16 +1527,42 @@ document.addEventListener('DOMContentLoaded', async () => {
                 filteredPresets.forEach(preset => {
                     const item = document.createElement('li');
                     item.className = 'preset-list-item';
-                    item.innerHTML = `
-                        <h3>${preset.name}</h3>
-                        <p>${preset.description || '説明なし'}</p>
-                        <div class="tags">${(preset.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
-                        <div class="actions">
-                            <button class="action-button edit">名前を変更</button>
-                            <button class="action-button delete">削除</button>
-                            <button class="action-button load">読込</button>
-                        </div>
-                    `;
+                    item.innerHTML = ''; // Clear existing content
+
+                    const h3 = document.createElement('h3');
+                    h3.textContent = preset.name;
+
+                    const p = document.createElement('p');
+                    p.textContent = preset.description || '説明なし';
+
+                    const tagsDiv = document.createElement('div');
+                    tagsDiv.className = 'tags';
+                    if (preset.tags && preset.tags.length > 0) {
+                        tagsDiv.innerHTML = preset.tags.map(t => {
+                            const span = document.createElement('span');
+                            span.className = 'tag';
+                            span.textContent = t;
+                            return span.outerHTML;
+                        }).join('');
+                    }
+
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'actions';
+
+                    const editButton = document.createElement('button');
+                    editButton.className = 'action-button edit';
+                    editButton.textContent = '名前を変更';
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'action-button delete';
+                    deleteButton.textContent = '削除';
+
+                    const loadButton = document.createElement('button');
+                    loadButton.className = 'action-button load';
+                    loadButton.textContent = '読込';
+
+                    actionsDiv.append(editButton, deleteButton, loadButton);
+                    item.append(h3, p, tagsDiv, actionsDiv);
                     item.querySelector('.load').onclick = (e) => { e.stopPropagation(); loadPresetFromFirestore(preset.id); };
                     item.querySelector('.edit').onclick = (e) => { e.stopPropagation(); openEditPresetMetadataModal(preset.id); };
                     item.querySelector('.delete').onclick = (e) => { e.stopPropagation(); deletePresetFromFirestore(preset.id, preset.name); };
