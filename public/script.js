@@ -401,6 +401,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupKeyboardShortcuts();
     }
 
+    function addTag(label) {
+        const tagContainer = document.getElementById('tag-display-container');
+        const currentTags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
+        if (currentTags.includes(label) || currentTags.length >= 10) { // Prevent duplicates and limit tags
+            return;
+        }
+        const tagBadge = document.createElement('div');
+        tagBadge.className = 'tag-badge';
+        tagBadge.innerHTML = `<span>${label}</span><span class="remove-tag">×</span>`;
+        tagContainer.appendChild(tagBadge);
+    }
+
     function setupSaveModalListeners() {
         const nameInput = document.getElementById('preset-name');
         const saveButton = document.getElementById('save-preset-button');
@@ -424,17 +436,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 e.target.parentElement.remove();
             }
         });
-
-        function addTag(label) {
-            const currentTags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
-            if (currentTags.includes(label) || currentTags.length >= 10) { // Prevent duplicates and limit tags
-                return;
-            }
-            const tagBadge = document.createElement('div');
-            tagBadge.className = 'tag-badge';
-            tagBadge.innerHTML = `<span>${label}</span><span class="remove-tag">×</span>`;
-            tagContainer.appendChild(tagBadge);
-        }
     }
 
     function createFxSlotButtons() {
@@ -1203,6 +1204,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // タグ入力フィールドに残っている内容を自動的に追加
+        const tagsInput = document.getElementById('preset-tags-input');
+        if (tagsInput.value.trim() !== '') {
+            addTag(tagsInput.value.trim());
+            tagsInput.value = '';
+        }
+
         const tagContainer = document.getElementById('tag-display-container');
         const tags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
 
@@ -1628,6 +1636,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         const editingId = savePresetModal.dataset.editingId;
+        
+        // タグ入力フィールドに残っている内容を自動的に追加
+        const tagsInput = document.getElementById('preset-tags-input');
+        if (tagsInput.value.trim() !== '') {
+            addTag(tagsInput.value.trim());
+            tagsInput.value = '';
+        }
+        
         const tagContainer = document.getElementById('tag-display-container');
         const tags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
 
