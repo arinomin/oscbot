@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function addTag(label) {
         const tagContainer = document.getElementById('tag-display-container');
         const currentTags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
-        if (currentTags.includes(label) || currentTags.length >= 10) { // Prevent duplicates and limit tags
+        if (currentTags.includes(label) || currentTags.length >= 10) {
             return;
         }
         const tagBadge = document.createElement('div');
