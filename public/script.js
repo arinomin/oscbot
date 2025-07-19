@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isPlaying = false;
     let isLooping = false;
     let sequenceTimeoutId = null;
+    let nextStepTime = 0;
     let activeOscillators = [];
     let currentlyEditingStepId = null;
     let dragSrcElement = null;
@@ -895,6 +896,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             isPlaying = true;
             isLooping = loop;
             currentStep = 0;
+            nextStepTime = audioCtx.currentTime + 0.05; // Add a small buffer
             document.querySelectorAll('.playback-block.playing').forEach(el => el.classList.remove('playing'));
             scheduleNextStep();
         };
@@ -904,17 +906,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function scheduleNextStep() {
         if (!isPlaying) return;
-        if (currentStep >= currentSequenceMax) {
-            if (isLooping) currentStep = 0;
-            else { stopAllSounds(); return; }
-        }
-        const data = sequenceData[currentStep];
+
         const bpmVal = parseFloat(bpmInput.value);
         const stepDurSec = (60 / bpmVal) * currentNoteDuration;
-        highlightPlaybackBlock(currentStep, stepDurSec);
-        playSound(data, stepDurSec);
-        currentStep++;
-        if (isPlaying) sequenceTimeoutId = setTimeout(scheduleNextStep, stepDurSec * 1000);
+
+        while (nextStepTime < audioCtx.currentTime + 0.1) {
+            if (currentStep >= currentSequenceMax) {
+                if (isLooping) {
+                    currentStep = 0;
+                } else {
+                    stopAllSounds();
+                    return;
+                }
+            }
+
+            const data = sequenceData[currentStep];
+            highlightPlaybackBlock(currentStep, stepDurSec, nextStepTime);
+            playSound(data, stepDurSec, nextStepTime);
+
+            nextStepTime += stepDurSec;
+            currentStep++;
+        }
+
+        if (isPlaying) {
+            sequenceTimeoutId = setTimeout(scheduleNextStep, 25);
+        }
     }
 
     function stopAllSounds() {
@@ -973,11 +989,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 440 * Math.pow(2, (midiNote - 69) / 12);
     }
 
-    function highlightPlaybackBlock(blockId, duration) {
+    function highlightPlaybackBlock(blockId, duration, startTime) {
         const el = sequenceData[blockId]?.playbackElements?.blockElement;
         if (el) {
-            el.classList.add('playing');
-            setTimeout(() => el.classList.remove('playing'), duration * 1000);
+            const highlightDelay = (startTime - audioCtx.currentTime) * 1000;
+            setTimeout(() => {
+                el.classList.add('playing');
+                setTimeout(() => el.classList.remove('playing'), duration * 1000);
+            }, Math.max(0, highlightDelay));
         }
     }
 
