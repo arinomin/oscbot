@@ -1193,7 +1193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hasUnsavedChanges = currentPresetStatus.textContent.includes('*');
         if (!isSavingCurrentState && hasUnsavedChanges) {
             showConfirmationModal(
-                '現在の編集内容を破棄して、新しいプリセットを作成しますか？',
+                '新しいプリセットを作成しますか？保存されていない編集内容は破棄されます。',
                 action,
                 { confirmText: 'はい', cancelText: 'いいえ', isDanger: true }
             );
