@@ -1767,5 +1767,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         bpmInput.value = Math.max(20, Math.min(300, newValue));
     }
 
+    // Hide loader and show app when initialization is complete
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const sequencerApp = document.querySelector('.sequencer-app');
+    loadingOverlay.style.opacity = '0';
+    sequencerApp.classList.add('loaded');
+    setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+    }, 500); // Match transition duration
+
     init();
 });
