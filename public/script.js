@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         createFxSlotButtons();
     }
 
-    """    function setupEventListeners() {
+    function setupEventListeners() {
         playOnceButton.onclick = () => handlePlay(false);
         playLoopButton.onclick = () => handlePlay(true);
         stopButton.onclick = stopAllSounds;
@@ -435,7 +435,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             tagContainer.appendChild(tagBadge);
         }
     }
-""
 
     function createFxSlotButtons() {
         fxSlotsContainer.innerHTML = '';
