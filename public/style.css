@@ -746,6 +746,88 @@ input[type="range"]:not(:disabled)::-moz-range-thumb:hover {
 }
 #save-preset-modal textarea { resize: vertical; min-height: 60px; }
 
+/* --- New Save Modal Styles --- */
+.input-with-icon {
+    position: relative;
+    margin-bottom: 20px;
+}
+.input-with-icon > i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-color-end);
+    font-size: 0.9em;
+}
+.input-with-icon > label {
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    display: block;
+}
+.input-with-icon > input,
+.input-with-icon > textarea {
+    padding-left: 40px !important;
+    width: 100%;
+}
+.required-star {
+    color: var(--danger-color);
+    font-weight: bold;
+}
+.tag-input-container .input-with-icon {
+    display: flex;
+    align-items: center;
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 5px 10px 5px 0; /* Adjusted padding */
+}
+.tag-input-container .input-with-icon > i {
+    position: static;
+    transform: none;
+    padding: 0 10px;
+}
+#tag-display-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex-grow: 1;
+}
+.tag-badge {
+    display: flex;
+    align-items: center;
+    background-color: var(--secondary-bg);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+.tag-badge .remove-tag {
+    margin-left: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+#preset-tags-input {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    flex-grow: 1;
+    min-width: 100px;
+    padding: 5px;
+}
+#preset-tags-input:focus {
+    outline: none;
+}
+#save-preset-button:disabled {
+    background: var(--secondary-bg);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+#save-preset-button:disabled:hover {
+    box-shadow: none;
+    opacity: 0.6;
+}
+
+
 
 /* Desktop & Tablet Styles */
 @media (min-width: 700px) {

@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         createFxSlotButtons();
     }
 
-    function setupEventListeners() {
+    """    function setupEventListeners() {
         playOnceButton.onclick = () => handlePlay(false);
         playLoopButton.onclick = () => handlePlay(true);
         stopButton.onclick = stopAllSounds;
@@ -396,8 +396,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('rg-execute-button').onclick = executeRandomGeneration;
         document.getElementById('save-preset-button').onclick = saveOrUpdatePresetInFirestore;
         document.getElementById('search-box').addEventListener('input', populatePresetListFromFirestore);
+        setupSaveModalListeners();
         setupKeyboardShortcuts();
     }
+
+    function setupSaveModalListeners() {
+        const nameInput = document.getElementById('preset-name');
+        const saveButton = document.getElementById('save-preset-button');
+        const tagsInput = document.getElementById('preset-tags-input');
+        const tagContainer = document.getElementById('tag-display-container');
+
+        nameInput.addEventListener('input', () => {
+            saveButton.disabled = nameInput.value.trim() === '';
+        });
+
+        tagsInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && tagsInput.value.trim() !== '') {
+                e.preventDefault();
+                addTag(tagsInput.value.trim());
+                tagsInput.value = '';
+            }
+        });
+
+        tagContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-tag')) {
+                e.target.parentElement.remove();
+            }
+        });
+
+        function addTag(label) {
+            const currentTags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
+            if (currentTags.includes(label) || currentTags.length >= 10) { // Prevent duplicates and limit tags
+                return;
+            }
+            const tagBadge = document.createElement('div');
+            tagBadge.className = 'tag-badge';
+            tagBadge.innerHTML = `<span>${label}</span><span class="remove-tag">×</span>`;
+            tagContainer.appendChild(tagBadge);
+        }
+    }
+""
 
     function createFxSlotButtons() {
         fxSlotsContainer.innerHTML = '';
@@ -1043,6 +1081,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const tagContainer = document.getElementById('tag-display-container');
+        const tags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
+
         // The logic is now unified: we always save the current state to a new document.
         if (!isSavingCurrentState) {
             // This block is now less likely to be used, but kept for safety.
@@ -1052,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const newPresetData = {
             name: name,
             description: document.getElementById('preset-description').value.trim(),
-            tags: document.getElementById('preset-tags').value.trim().split(',').map(t => t.trim()).filter(t => t),
+            tags: tags,
             ...getCurrentState(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1101,7 +1142,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const action = () => {
             const presetNameInput = document.getElementById('preset-name');
             const presetDescriptionInput = document.getElementById('preset-description');
-            const presetTagsInput = document.getElementById('preset-tags');
+            const tagContainer = document.getElementById('tag-display-container');
+            const tagsInput = document.getElementById('preset-tags-input');
             const saveButton = document.getElementById('save-preset-button');
             const modalTitle = savePresetModal.querySelector('h3');
 
@@ -1119,7 +1161,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             presetNameInput.value = '';
             presetDescriptionInput.value = '';
-            presetTagsInput.value = '';
+            tagContainer.innerHTML = '';
+            tagsInput.value = '';
+            saveButton.disabled = true;
 
             saveButton.onclick = () => createNewPreset(true); // Always save current state from this flow
 
@@ -1442,10 +1486,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         const editingId = savePresetModal.dataset.editingId;
+        const tagContainer = document.getElementById('tag-display-container');
+        const tags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
+
         const presetData = {
             name: name,
             description: document.getElementById('preset-description').value.trim(),
-            tags: document.getElementById('preset-tags').value.trim().split(',').map(t => t.trim()).filter(t => t),
+            tags: tags,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
 
@@ -1591,11 +1638,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             const preset = doc.data();
             const modalTitle = savePresetModal.querySelector('h3');
             modalTitle.textContent = 'プリセット情報の編集';
-            document.getElementById('preset-name').value = preset.name;
+            const nameInput = document.getElementById('preset-name');
+            nameInput.value = preset.name;
             document.getElementById('preset-description').value = preset.description || '';
-            document.getElementById('preset-tags').value = (preset.tags || []).join(', ');
-            document.getElementById('save-preset-button').textContent = '変更を保存';
-            document.getElementById('save-preset-button').onclick = () => saveOrUpdatePresetInFirestore(true);
+            
+            const tagContainer = document.getElementById('tag-display-container');
+            tagContainer.innerHTML = '';
+            if (preset.tags) {
+                preset.tags.forEach(tag => {
+                    const tagBadge = document.createElement('div');
+                    tagBadge.className = 'tag-badge';
+                    tagBadge.innerHTML = `<span>${tag}</span><span class="remove-tag">×</span>`;
+                    tagContainer.appendChild(tagBadge);
+                });
+            }
+
+            const saveButton = document.getElementById('save-preset-button');
+            saveButton.textContent = '変更を保存';
+            saveButton.onclick = () => saveOrUpdatePresetInFirestore(true);
+            saveButton.disabled = nameInput.value.trim() === '';
             savePresetModal.dataset.editingId = presetId;
             
             const existingOverwriteBtn = document.getElementById('overwrite-preset-button');

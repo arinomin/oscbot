@@ -237,19 +237,25 @@
             <span class="close-button">×</span>
             <h3>プリセット保存</h3>
             <div class="modal-controls">
-                <div>
-                    <label for="preset-name">プリセット名 (必須):</label>
-                    <input type="text" id="preset-name" required>
+                <div class="input-with-icon">
+                    <label for="preset-name">プリセット名 <span class="required-star">*</span></label>
+                    <i class="fa-solid fa-signature"></i>
+                    <input type="text" id="preset-name" placeholder="例: My Awesome Bassline" required>
                 </div>
-                <div>
-                    <label for="preset-description">説明 (任意):</label>
-                    <textarea id="preset-description" rows="3"></textarea>
+                <div class="input-with-icon">
+                    <label for="preset-description">説明 (任意)</label>
+                    <i class="fa-solid fa-align-left"></i>
+                    <textarea id="preset-description" rows="3" placeholder="例: A funky pattern for the verse"></textarea>
                 </div>
-                <div>
-                    <label for="preset-tags">タグ (カンマ区切り):</label>
-                    <input type="text" id="preset-tags">
+                <div class="tag-input-container">
+                    <label for="preset-tags-input">タグ (任意)</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-hashtag"></i>
+                        <div id="tag-display-container"></div>
+                        <input type="text" id="preset-tags-input" placeholder="入力してEnter">
+                    </div>
                 </div>
-                <button id="save-preset-button" class="modal-main-action-button">保存</button>
+                <button id="save-preset-button" class="modal-main-action-button" disabled>保存</button>
             </div>
         </div>
     </div>
