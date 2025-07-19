@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function addTag(label) {
         const tagContainer = document.getElementById('tag-display-container');
         const currentTags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
-        if (currentTags.includes(label) || currentTags.length >= 10) {
+        if (currentTags.includes(label) || currentTags.length >= 10) { // Prevent duplicates and limit tags
             return;
         }
         const tagBadge = document.createElement('div');
@@ -1204,7 +1204,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // タグ入力フィールドに残っている内容を自動的に追加
         const tagsInput = document.getElementById('preset-tags-input');
         if (tagsInput.value.trim() !== '') {
             addTag(tagsInput.value.trim());
@@ -1635,15 +1634,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast('プリセット名は必須です。', 'error');
             return;
         }
-        const editingId = savePresetModal.dataset.editingId;
-        
-        // タグ入力フィールドに残っている内容を自動的に追加
+
         const tagsInput = document.getElementById('preset-tags-input');
         if (tagsInput.value.trim() !== '') {
             addTag(tagsInput.value.trim());
             tagsInput.value = '';
         }
         
+        const editingId = savePresetModal.dataset.editingId;
         const tagContainer = document.getElementById('tag-display-container');
         const tags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
 
