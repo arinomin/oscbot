@@ -1193,21 +1193,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hasUnsavedChanges = currentPresetStatus.textContent.includes('*');
         if (!isSavingCurrentState && hasUnsavedChanges) {
             showConfirmationModal(
-                '新規作成します。
-現在の編集内容は保存しますか？',
+                '新規作成します。\n現在の編集内容は保存しますか？',
                 () => { // onConfirm: Save and Continue
                     manualSave();
                 },
                 {
-                    confirmText: '保存して新規作成',
+                    confirmText: '保存して続行',
                     onCancel: () => { // onCancel: Discard and Continue
                         resetSequencerToDefault();
                         updatePresetStatus('新規シーケンス', false, false);
                         clearLocalBackup();
                         action();
                     },
-                    cancelText: '破棄して新規作成',
-                    onAlternative: () => { /* Do nothing, just close the modal */ },
+                    cancelText: '破棄して続行',
+                    onAlternative: () { /* Do nothing, just close the modal */ },
                     alternativeText: 'キャンセル',
                     isDanger: false
                 }
