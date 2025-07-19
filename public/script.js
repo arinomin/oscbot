@@ -921,8 +921,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const data = sequenceData[currentStep];
+            // 視覚的な遅延を補正するために、音声の再生を50ミリ秒遅らせる
+            const audioDelay = 0.05;
             highlightPlaybackBlock(currentStep, stepDurSec, nextStepTime);
-            playSound(data, stepDurSec, nextStepTime);
+            playSound(data, stepDurSec, nextStepTime + audioDelay);
 
             nextStepTime += stepDurSec;
             currentStep++;
