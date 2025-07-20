@@ -1493,7 +1493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showConfirmationModal(
                 '現在のプリセットの保存方法を選択してください',
                 () => { // onConfirm: Overwrite
-                    performSave(false, onSaveCompleteCallback);
+                    overwritePresetInFirestore(currentlyLoadedPresetDocId, onSaveCompleteCallback);
                 },
                 {
                     onAlternative: () => { // onAlternative: Save As...
