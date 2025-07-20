@@ -856,6 +856,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, duration);
     }
 
+    // Google Analytics イベント送信関数
+    function trackEvent(action, category, label = null, value = null) {
+        if (typeof gtag !== 'undefined') {
+            const eventParams = {
+                event_category: category,
+                event_label: label,
+                value: value
+            };
+            gtag('event', action, eventParams);
+        }
+    }
+
     function createPlaybackBlocks() {
         playbackGrid.innerHTML = '';
         sequenceData = [];
@@ -900,6 +912,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             nextStepTime = audioCtx.currentTime + 0.05; // Add a small buffer
             document.querySelectorAll('.playback-block.playing').forEach(el => el.classList.remove('playing'));
             scheduleNextStep();
+            // Analytics: 再生イベントを記録
+            trackEvent('play_sequence', 'audio', loop ? 'loop' : 'once');
         };
         if (audioCtx.state === 'suspended') audioCtx.resume().then(start);
         else start();
@@ -1235,6 +1249,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             updatePresetStatus(name, true);
             clearLocalBackup();
             closeSavePresetModal();
+            // Analytics: プリセット作成を記録
+            trackEvent('create_preset', 'preset_management', 'new_preset');
             if (onSaveCompleteCallback) onSaveCompleteCallback();
         } catch (error) {
             showToast(`プリセットの作成に失敗しました: ${error.message}`, 'error');
@@ -1369,6 +1385,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         setActiveButtonInGroup(sequenceMaxButtonsContainer, currentSequenceMax);
         closeRandomGenerateModal();
         showToast("ランダム生成を実行しました。", "success");
+        // Analytics: ランダム生成使用を記録
+        trackEvent('random_generate', 'creation_tools', chord.name, stepsToGen);
         markAsDirty();
     }
 
