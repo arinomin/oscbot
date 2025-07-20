@@ -344,8 +344,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         randomGenerateTriggerButton.onclick = openRandomGenerateModal;
         loadDataButton.onclick = openLoadPresetModal;
         newPresetButton.onclick = () => openNewPresetModal(false);
-        manualSaveButton.onclick = manualSave;
-        footerSaveButton.onclick = manualSave;
+        manualSaveButton.onclick = () => manualSave();
+        footerSaveButton.onclick = () => manualSave();
         currentPresetStatus.addEventListener('click', () => {
             if (currentlyLoadedPresetDocId && currentUser) {
                 openEditPresetMetadataModal(currentlyLoadedPresetDocId);
