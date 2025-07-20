@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "mkdir -p public/dist && terser public/script.js -o public/dist/script.js -c -m && cleancss -o public/dist/style.css public/style.css"
+    "build": "mkdir -p public/dist && terser public/js/main.js -o public/dist/main.js -c -m && cleancss -o public/dist/style.css public/style.css"
   },
   "dependencies": {
     "ejs": "^3.1.10",
