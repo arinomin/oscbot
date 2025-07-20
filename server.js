@@ -1,16 +1,25 @@
 
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto'); // Import crypto for nonce generation
 
 const app = express();
 
+// Set EJS as the template engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 // Security Headers Middleware
 app.use((req, res, next) => {
-  // CSP: Define allowed sources
+  // Generate a nonce for each request
+  const nonce = crypto.randomBytes(16).toString('base64');
+  res.locals.cspNonce = nonce;
+
+  // CSP: Define allowed sources with nonce
   const cspDirectives = [
     "default-src 'self'",
-    // Allow scripts from self, Google, and Firebase
-    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com",
+    // Allow scripts from self, Google, Firebase, and inline scripts with a nonce
+    `script-src 'self' 'nonce-${nonce}' https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com`,
     // Allow styles from self and FontAwesome
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
     // Allow frames from Firebase auth
@@ -39,7 +48,7 @@ app.use((req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-// 静的ファイルの配信
+// 静的ファイルの配信 (from public directory)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Firebase設定をクライアントに安全に配信するエンドポイント
@@ -69,9 +78,9 @@ app.get('/api/firebase-config', (req, res) => {
   res.json(firebaseConfig);
 });
 
-// メインページの配信
+// メインページの配信 (using EJS to inject nonce)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.render('index', { cspNonce: res.locals.cspNonce });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
