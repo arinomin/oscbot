@@ -9,8 +9,8 @@ app.use((req, res, next) => {
   // CSP: Define allowed sources
   const cspDirectives = [
     "default-src 'self'",
-    // Allow scripts from self, Google, and Firebase
-    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com",
+    // Allow scripts from self, Google, Firebase, and blob URLs
+    "script-src 'self' 'unsafe-inline' blob: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://infird.com",
     // Allow styles from self and FontAwesome
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
     // Allow frames from Firebase auth
@@ -23,6 +23,9 @@ app.use((req, res, next) => {
     "img-src 'self' data: https://*.googleusercontent.com"
   ];
   res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
+
+  // COOP: Allow popups for Firebase authentication
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
 
   // X-Content-Type-Options: Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');

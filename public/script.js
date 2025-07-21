@@ -1715,8 +1715,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearLocalBackup();
             if (onSaveCompleteCallback) onSaveCompleteCallback();
         } catch (error) {
-            showToast(`上書き保存に失敗しました: ${error.message}`, 'error');
             console.error("Error overwriting preset: ", error);
+            if (error.code === 'not-found') {
+                showToast('エラー: 保存対象のプリ���ットが見つかりませんでした。', 'error');
+                showConfirmationModal(
+                    '元のプリセットが削除されているようです。現在の内容を新しいプリセットとして保存しますか？',
+                    () => { openNewPresetModal(true); },
+                    { confirmText: '新規保存', cancelText: 'キャンセル' }
+                );
+                currentlyLoadedPresetDocId = null;
+                updatePresetStatus('新規シーケンス', false, true);
+            } else {
+                showToast(`上書き保存に失敗しました: ${error.message}`, 'error');
+            }
         }
     }
 
