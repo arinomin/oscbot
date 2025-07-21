@@ -1,34 +1,27 @@
 
 const express = require('express');
 const path = require('path');
-const crypto = require('crypto'); // Import crypto for nonce generation
 
 const app = express();
 
-// Set EJS as the template engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
 // Security Headers Middleware
 app.use((req, res, next) => {
-  // Generate a nonce for each request
-  const nonce = crypto.randomBytes(16).toString('base64');
-  res.locals.cspNonce = nonce;
-
-  // CSP: Define allowed sources with nonce
-  const authDomain = process.env.FIREBASE_AUTH_DOMAIN;
+  // CSP: Define allowed sources
   const cspDirectives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com blob:`,
+    // Allow scripts from self, Google, and Firebase
+    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com",
+    // Allow styles from self and FontAwesome
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
-    `frame-src 'self' https://${authDomain}`,
+    // Allow frames from Firebase auth
+    "frame-src 'self' https://*.firebaseapp.com",
+    // Allow fonts from FontAwesome
     "font-src 'self' https://cdnjs.cloudflare.com",
+    // Allow connections to self, WebSocket, Firebase, and Google Analytics
     "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com",
+    // Allow images from self, data URIs, and Google user content (for profile pictures)
     "img-src 'self' data: https://*.googleusercontent.com"
   ];
-  if (!authDomain) {
-    console.warn('Warning: FIREBASE_AUTH_DOMAIN is not set. CSP for frame-src might be incomplete.');
-  }
   res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
 
   // X-Content-Type-Options: Prevent MIME type sniffing
@@ -46,7 +39,7 @@ app.use((req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-// 静的ファイルの配信 (from public directory)
+// 静的ファイルの配信
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Firebase設定をクライアントに安全に配信するエンドポイント
@@ -76,9 +69,9 @@ app.get('/api/firebase-config', (req, res) => {
   res.json(firebaseConfig);
 });
 
-// メインページの配信 (using EJS to inject nonce)
+// メインページの配信
 app.get('/', (req, res) => {
-  res.render('index', { cspNonce: res.locals.cspNonce });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
