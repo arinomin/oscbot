@@ -1386,7 +1386,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeRandomGenerateModal();
         showToast("ランダム生成を実行しました。", "success");
         // Analytics: ランダム生成使用を記録
-        const chord = chordTypes[document.getElementById('rg-chord-type').value];
         trackEvent('random_generate', 'creation_tools', chord.name, stepsToGen);
         markAsDirty();
     }
