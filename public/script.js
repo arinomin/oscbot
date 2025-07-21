@@ -1912,9 +1912,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     function initAuth() {
         auth.onAuthStateChanged(user => {
             if (user) {
+                // User is signed in.
+                const userRef = db.collection('users').doc(user.uid);
+                userRef.get().then((doc) => {
+                    if (!doc.exists) {
+                        // New user, create a document for them in Firestore.
+                        userRef.set({
+                            displayName: user.displayName,
+                            email: user.email,
+                            photoURL: user.photoURL,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                    } else {
+                        // Existing user, update last login time.
+                        userRef.update({
+                            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                }).catch(error => {
+                    console.error("Error checking/creating user in Firestore:", error);
+                    showToast('ユーザー情報の確認に失敗しました。', 'error');
+                });
+
                 currentUser = user;
                 showUserInfo(user);
             } else {
+                // User is signed out.
                 currentUser = null;
                 hideUserInfo();
             }
