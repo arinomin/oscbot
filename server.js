@@ -13,19 +13,19 @@ app.use((req, res, next) => {
     "script-src 'self' 'unsafe-inline' blob: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://infird.com",
     // Allow styles from self and FontAwesome
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
-    // Allow frames from Firebase auth
-    "frame-src 'self' https://*.firebaseapp.com",
+    // Allow frames from Firebase auth and Google accounts
+    "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com",
     // Allow fonts from FontAwesome
     "font-src 'self' https://cdnjs.cloudflare.com",
     // Allow connections to self, WebSocket, Firebase, and Google Analytics
-    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://overbridgenet.com",
+    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://overbridgenet.com",
     // Allow images from self, data URIs, and Google user content (for profile pictures)
     "img-src 'self' data: https://*.googleusercontent.com"
   ];
   res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
 
-  // COOP: Allow popups for Firebase authentication
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  // COOP: Unsafe-none for better Safari compatibility with Firebase auth
+  res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
 
   // X-Content-Type-Options: Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');

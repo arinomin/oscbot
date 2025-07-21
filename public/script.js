@@ -5,6 +5,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Ensure audio context starts only after user interaction
+    const resumeAudioContext = () => {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(console.error);
+        }
+    };
+
+    // Add event listeners for user interaction
+    document.addEventListener('click', resumeAudioContext, { once: true });
+    document.addEventListener('touchstart', resumeAudioContext, { once: true });
+    document.addEventListener('keydown', resumeAudioContext, { once: true });
+
     // Firebase configuration from server
     let firebaseConfig = null;
     try {
@@ -106,11 +118,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function showLoginPromptModal() {
         showConfirmationModal('この機能を利用するにはGoogleアカウントでのログインが必要です。', () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(error => {
-                if (error.code !== 'auth/popup-closed-by-user') showToast(`ログインに失敗しました: ${error.message}`, 'error');
-            });
+            signInWithGoogleAuth();
         }, { confirmText: 'Googleでログイン', cancelText: 'キャンセル' });
+    }
+
+    async function signInWithGoogleAuth() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        
+        // Safari detection
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        
+        try {
+            if (isSafari) {
+                // Use redirect for Safari
+                await auth.signInWithRedirect(provider);
+            } else {
+                // Use popup for other browsers
+                await auth.signInWithPopup(provider);
+            }
+        } catch (error) {
+            console.error('Firebase Auth Error:', error);
+            if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+                // Fallback to redirect if popup fails
+                try {
+                    await auth.signInWithRedirect(provider);
+                } catch (redirectError) {
+                    console.error('Redirect Auth Error:', redirectError);
+                    showToast(`ログインに失敗しました: ${redirectError.message}`, 'error');
+                }
+            } else if (error.code !== 'auth/popup-closed-by-user') {
+                showToast(`ログインに失敗しました: ${error.message}`, 'error');
+            }
+        }
     }
 
     // Modals
@@ -1921,6 +1960,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function initAuth() {
+        // Handle redirect result for Safari
+        auth.getRedirectResult().then((result) => {
+            if (result.user) {
+                showToast('ログインに成功しました', 'success');
+            }
+        }).catch((error) => {
+            console.error('Redirect result error:', error);
+            if (error.code !== 'auth/popup-closed-by-user') {
+                showToast(`ログインに失敗しました: ${error.message}`, 'error');
+            }
+        });
+
         auth.onAuthStateChanged(user => {
             if (user) {
                 // User is signed in.
@@ -1943,6 +1994,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 currentUser = user;
                 showUserInfo(user);
+                
+                // Resume audio context after successful auth (for Safari)
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume().catch(console.error);
+                }
             } else {
                 // User is signed out.
                 currentUser = null;
@@ -1971,12 +2027,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     loginButton.addEventListener('click', () => {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(error => {
-            if (error.code !== 'auth/popup-closed-by-user') {
-                showToast('ログインに失敗しました: ' + error.message, 'error');
-            }
-        });
+        signInWithGoogleAuth();
     });
 
     logoutButton.addEventListener('click', () => {
