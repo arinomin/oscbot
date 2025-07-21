@@ -16,21 +16,19 @@ app.use((req, res, next) => {
   res.locals.cspNonce = nonce;
 
   // CSP: Define allowed sources with nonce
+  const authDomain = process.env.FIREBASE_AUTH_DOMAIN;
   const cspDirectives = [
     "default-src 'self'",
-    // Allow scripts from self, Google, Firebase, and inline scripts with a nonce
     `script-src 'self' 'nonce-${nonce}' https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com`,
-    // Allow styles from self and FontAwesome
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
-    // Allow frames from Firebase auth
-    "frame-src 'self' https://*.firebaseapp.com",
-    // Allow fonts from FontAwesome
+    `frame-src 'self' https://${authDomain}`,
     "font-src 'self' https://cdnjs.cloudflare.com",
-    // Allow connections to self, WebSocket, Firebase, and Google Analytics
     "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com",
-    // Allow images from self, data URIs, and Google user content (for profile pictures)
     "img-src 'self' data: https://*.googleusercontent.com"
   ];
+  if (!authDomain) {
+    console.warn('Warning: FIREBASE_AUTH_DOMAIN is not set. CSP for frame-src might be incomplete.');
+  }
   res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
 
   // X-Content-Type-Options: Prevent MIME type sniffing
