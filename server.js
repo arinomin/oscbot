@@ -25,7 +25,7 @@ app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
 
   // COOP: Allow popups for Firebase authentication
-  res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
 
   // X-Content-Type-Options: Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');

@@ -1923,9 +1923,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     function initAuth() {
         auth.onAuthStateChanged(user => {
             if (user) {
+                // User is signed in.
+                const userRef = db.collection('users').doc(user.uid);
+                userRef.get().then((doc) => {
+                    const userData = {
+                        displayName: user.displayName,
+                        email: user.email,
+                        photoURL: user.photoURL,
+                        lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    if (!doc.exists) {
+                        userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    }
+                    return userRef.set(userData, { merge: true });
+                }).catch(error => {
+                    console.error("Error checking/creating user in Firestore:", error);
+                    showToast('ユーザー情報の確認に失敗しました。', 'error');
+                });
+
                 currentUser = user;
                 showUserInfo(user);
             } else {
+                // User is signed out.
                 currentUser = null;
                 hideUserInfo();
             }
@@ -1938,6 +1957,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (user.photoURL) {
             const userIcon = document.createElement('img');
             userIcon.src = user.photoURL;
+            const existingIcon = userName.querySelector('img');
+            if(existingIcon) existingIcon.remove();
             userName.insertBefore(userIcon, userName.firstChild);
         }
         loginButton.style.display = 'none';
