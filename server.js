@@ -19,7 +19,7 @@ app.use((req, res, next) => {
   const authDomain = process.env.FIREBASE_AUTH_DOMAIN;
   const cspDirectives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com`,
+    `script-src 'self' 'nonce-${nonce}' https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com blob:`,
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
     `frame-src 'self' https://${authDomain}`,
     "font-src 'self' https://cdnjs.cloudflare.com",
