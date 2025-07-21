@@ -267,8 +267,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         createPlaybackBlocks();
         setupUIComponents();
         setupEventListeners();
-        initAuth();
-        loadLocalBackup();
+        // initAuth(); // Temporarily disable authentication
+        // loadLocalBackup(); // Temporarily disable local backup loading which depends on user interaction
         document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
     }
 
@@ -342,15 +342,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         stopButton.onclick = stopAllSounds;
         bulkEditTriggerButton.onclick = openBulkEditModal;
         randomGenerateTriggerButton.onclick = openRandomGenerateModal;
-        loadDataButton.onclick = openLoadPresetModal;
-        newPresetButton.onclick = () => openNewPresetModal(false);
-        manualSaveButton.onclick = () => manualSave();
-        footerSaveButton.onclick = () => manualSave();
-        currentPresetStatus.addEventListener('click', () => {
-            if (currentlyLoadedPresetDocId && currentUser) {
-                openEditPresetMetadataModal(currentlyLoadedPresetDocId);
-            }
-        });
+        // loadDataButton.onclick = openLoadPresetModal; // Temporarily disable
+        // newPresetButton.onclick = () => openNewPresetModal(false); // Temporarily disable
+        // manualSaveButton.onclick = () => manualSave(); // Temporarily disable
+        // footerSaveButton.onclick = () => manualSave(); // Temporarily disable
+        // currentPresetStatus.addEventListener('click', () => { // Temporarily disable
+        //     if (currentlyLoadedPresetDocId && currentUser) {
+        //         openEditPresetMetadataModal(currentlyLoadedPresetDocId);
+        //     }
+        // });
         bpmAdjustButtons.forEach(button => button.addEventListener('click', () => {
             adjustBpm(parseInt(button.dataset.step));
             updateActiveBpmSyncFx();
@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 case 'Escape': if (isModalActive) isModalActive.querySelector('.close-button').click(); else if (isPlaying) stopButton.click(); e.preventDefault(); break;
                 case 'r': case 'R': randomGenerateTriggerButton.click(); break;
                 case 'b': case 'B': bulkEditTriggerButton.click(); break;
-                case 'l': case 'L': loadDataButton.click(); break;
+                // case 'l': case 'L': loadDataButton.click(); break; // Temporarily disable
             }
         });
     }
