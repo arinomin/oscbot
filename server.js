@@ -18,14 +18,14 @@ app.use((req, res, next) => {
     // Allow fonts from FontAwesome
     "font-src 'self' https://cdnjs.cloudflare.com",
     // Allow connections to self, WebSocket, Firebase, and Google Analytics
-    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com",
+    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://overbridgenet.com",
     // Allow images from self, data URIs, and Google user content (for profile pictures)
     "img-src 'self' data: https://*.googleusercontent.com"
   ];
   res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
 
   // COOP: Allow popups for Firebase authentication
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
 
   // X-Content-Type-Options: Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
