@@ -107,9 +107,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showLoginPromptModal() {
         showConfirmationModal('この機能を利用するにはGoogleアカウントでのログインが必要です。', () => {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(error => {
-                if (error.code !== 'auth/popup-closed-by-user') showToast(`ログインに失敗しました: ${error.message}`, 'error');
-            });
+            // Use redirect which is more mobile-friendly
+            auth.signInWithRedirect(provider);
         }, { confirmText: 'Googleでログイン', cancelText: 'キャンセル' });
     }
 
@@ -1910,26 +1909,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function initAuth() {
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // Handle redirect result
+        auth.getRedirectResult()
+            .then((result) => {
+                if (result.user) {
+                    // This means a sign-in via redirect has just successfully completed.
+                    // The onAuthStateChanged observer will handle the user data update.
+                    showToast('ログインしました。', 'success');
+                }
+            })
+            .catch((error) => {
+                // Handle errors from the redirect.
+                console.error("Firebase redirect result error:", error);
+                if (error.code !== 'auth/web-storage-unsupported') {
+                    showToast(`ログインに失敗しました: ${error.message}`, 'error');
+                }
+            })
+            .finally(() => {
+                // Hide loading overlay once redirect check is complete
+                loadingOverlay.style.display = 'none';
+            });
+
         auth.onAuthStateChanged(user => {
             if (user) {
-                // User is signed in.
                 const userRef = db.collection('users').doc(user.uid);
                 userRef.get().then((doc) => {
+                    const userData = {
+                        displayName: user.displayName,
+                        email: user.email,
+                        photoURL: user.photoURL,
+                        lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
                     if (!doc.exists) {
-                        // New user, create a document for them in Firestore.
-                        userRef.set({
-                            displayName: user.displayName,
-                            email: user.email,
-                            photoURL: user.photoURL,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                    } else {
-                        // Existing user, update last login time.
-                        userRef.update({
-                            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                        userData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     }
+                    return userRef.set(userData, { merge: true });
                 }).catch(error => {
                     console.error("Error checking/creating user in Firestore:", error);
                     showToast('ユーザー情報の確認に失敗しました。', 'error');
@@ -1938,10 +1954,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 currentUser = user;
                 showUserInfo(user);
             } else {
-                // User is signed out.
                 currentUser = null;
                 hideUserInfo();
             }
+            // Hide loading overlay if it's still visible
+            loadingOverlay.style.display = 'none';
         });
     }
 
@@ -1951,6 +1968,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (user.photoURL) {
             const userIcon = document.createElement('img');
             userIcon.src = user.photoURL;
+            // Clear previous icon if any
+            const existingIcon = userName.querySelector('img');
+            if(existingIcon) existingIcon.remove();
             userName.insertBefore(userIcon, userName.firstChild);
         }
         loginButton.style.display = 'none';
@@ -1964,11 +1984,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     loginButton.addEventListener('click', () => {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(error => {
-            if (error.code !== 'auth/popup-closed-by-user') {
-                showToast('ログインに失敗しました: ' + error.message, 'error');
-            }
-        });
+        auth.signInWithRedirect(provider);
     });
 
     logoutButton.addEventListener('click', () => {
