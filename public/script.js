@@ -344,8 +344,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         randomGenerateTriggerButton.onclick = openRandomGenerateModal;
         loadDataButton.onclick = openLoadPresetModal;
         newPresetButton.onclick = () => openNewPresetModal(false);
-        manualSaveButton.onclick = manualSave;
-        footerSaveButton.onclick = manualSave;
+        manualSaveButton.onclick = () => manualSave();
+        footerSaveButton.onclick = () => manualSave();
         currentPresetStatus.addEventListener('click', () => {
             if (currentlyLoadedPresetDocId && currentUser) {
                 openEditPresetMetadataModal(currentlyLoadedPresetDocId);
@@ -1515,7 +1515,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showConfirmationModal(
                 '現在のプリセットの保存方法を選択してください',
                 () => { // onConfirm: Overwrite
-                    performSave(false, onSaveCompleteCallback);
+                    overwritePresetInFirestore(currentlyLoadedPresetDocId, onSaveCompleteCallback);
                 },
                 {
                     onAlternative: () => { // onAlternative: Save As...
@@ -1699,7 +1699,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    async function overwritePresetInFirestore(presetId) {
+    async function overwritePresetInFirestore(presetId, onSaveCompleteCallback = null) {
         if (!currentUser || !presetId) return;
         const presetUpdateData = {
             ...getCurrentState(),
@@ -1713,7 +1713,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast(`「${presetName}」を上書き保存しました。`, 'success');
             updatePresetStatus(presetName, true);
             clearLocalBackup();
-            closeSavePresetModal();
+            if (onSaveCompleteCallback) onSaveCompleteCallback();
         } catch (error) {
             showToast(`上書き保存に失敗しました: ${error.message}`, 'error');
             console.error("Error overwriting preset: ", error);
