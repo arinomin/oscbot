@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         { value: 2, label: '8分' },
                         { value: 2 / 1.5, label: '付点8分'},
                         { value: 3, label: '8分3連符' },
-                        { value: 4, label: '16分' },
+                        { value: 4, label: '16分' }
                     ]
                 }
             },
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         { value: 4, label: '16分' },
                         { value: 4 / 1.5, label: '付点16分'},
                         { value: 6, label: '16分3連符' },
-                        { value: 8, label: '32分' },
+                        { value: 8, label: '32分' }
                     ]
                 }
             },
@@ -358,6 +358,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function setupEventListeners() {
+        loginButton.addEventListener('click', signInWithGoogleAuth);
+        logoutButton.addEventListener('click', () => auth.signOut());
         playOnceButton.onclick = () => handlePlay(false);
         playLoopButton.onclick = () => handlePlay(true);
         stopButton.onclick = stopAllSounds;
@@ -1184,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             note: getActiveValue(document.getElementById('modal-note-buttons')),
             octave: parseInt(getActiveValue(document.getElementById('modal-octave-buttons'))),
             waveform: getActiveValue(document.getElementById('modal-waveform-buttons')),
-            volume: parseInt(document.getElementById('modal-volume').value) / 100,
+            volume: parseInt(document.getElementById('modal-volume').value) / 100
         };
         playSoundWithResume(testData, 0.5);
     }
@@ -1208,7 +1210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const changes = {
             note: getActiveValue(document.getElementById('bulk-modal-note-buttons')),
             octave: parseInt(getActiveValue(document.getElementById('bulk-modal-octave-buttons'))),
-            waveform: getActiveValue(document.getElementById('bulk-modal-waveform-buttons')),
+            waveform: getActiveValue(document.getElementById('bulk-modal-waveform-buttons'))
         };
         if (document.getElementById('bulk-modal-volume').dataset.isSetForBulk === "true") {
             changes.volume = parseInt(document.getElementById('bulk-modal-volume').value) / 100;
@@ -1259,7 +1261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tags: tags,
             ...getCurrentState(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         try {
@@ -1285,7 +1287,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 note: 'A',
                 octave: 4,
                 waveform: 'sawtooth',
-                volume: 0.5,
+                volume: 0.5
             });
             updatePlaybackBlockDisplay(i);
         });
@@ -1581,7 +1583,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const manualSaveButton = document.getElementById('manual-save-button');
         const footerSaveButton = document.getElementById('footer-save-button');
         let statusText = text || '新規シーケンス';
-        const baseName = statusText.replace(/\s\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存��.../, '');
+        const baseName = statusText.replace(/\s\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
 
         if (text === null) { // Explicitly hiding
             presetStatusContainer.style.display = 'none';
@@ -1687,7 +1689,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: name,
             description: document.getElementById('preset-description').value.trim(),
             tags: tags,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         try {
@@ -1723,7 +1725,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!currentUser || !presetId) return;
         const presetUpdateData = {
             ...getCurrentState(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
@@ -1986,9 +1988,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 hideUserInfo();
             }
         });
-
-        loginButton.onclick = signInWithGoogleAuth;
-        logoutButton.onclick = () => auth.signOut();
     }
 
     function showUserInfo(user) {

@@ -10,9 +10,9 @@ app.use((req, res, next) => {
   const cspDirectives = [
     "default-src 'self'",
     // Allow scripts with unsafe-hashes for Google authentication compatibility
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob: data: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://infird.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob: data: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://infird.com https://api.twitter.com",
     // Explicitly set script-src-elem with same permissions
-    "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob: data: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://infird.com",
+    "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob: data: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://infird.com https://api.twitter.com",
     // Allow styles from self, FontAwesome, and Google Fonts
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://accounts.google.com https://accounts.youtube.com",
     // Allow frames from Firebase auth and Google accounts (including YouTube)
