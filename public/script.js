@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function setupEventListeners() {
-        loginButton.addEventListener('click', signInWithGoogleAuth);
+        loginButton.addEventListener('click', signInWithTwitterAuth);
         logoutButton.addEventListener('click', () => auth.signOut());
         playOnceButton.onclick = () => handlePlay(false);
         playLoopButton.onclick = () => handlePlay(true);
@@ -1991,6 +1991,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function showUserInfo(user) {
+        userInfo.style.display = 'flex';
+        loginButton.style.display = 'none';
+        loadDataButton.disabled = false;
+        newPresetButton.disabled = false;
         const displayName = user.displayName || `ユーザー`;
         userName.textContent = `${displayName}さん`;
         if (user.photoURL) {
