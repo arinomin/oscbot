@@ -417,6 +417,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('rg-execute-button').onclick = executeRandomGeneration;
         document.getElementById('save-preset-button').onclick = saveOrUpdatePresetInFirestore;
         document.getElementById('search-box').addEventListener('input', populatePresetListFromFirestore);
+        loginButton.onclick = signInWithTwitterAuth;
+        logoutButton.onclick = () => {
+            auth.signOut().then(() => {
+                showToast('ログアウトしました。', 'info');
+                currentlyLoadedPresetDocId = null;
+                updatePresetStatus(null); // Hide status
+            }).catch((error) => {
+                showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
+                console.error('Logout Error:', error);
+            });
+        };
         setupSaveModalListeners();
         setupKeyboardShortcuts();
     }
