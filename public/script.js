@@ -417,6 +417,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('rg-execute-button').onclick = executeRandomGeneration;
         document.getElementById('save-preset-button').onclick = saveOrUpdatePresetInFirestore;
         document.getElementById('search-box').addEventListener('input', populatePresetListFromFirestore);
+        setupSaveModalListeners();
+        setupKeyboardShortcuts();
         loginButton.onclick = signInWithTwitterAuth;
         logoutButton.onclick = () => {
             auth.signOut().then(() => {
@@ -428,8 +430,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('Logout Error:', error);
             });
         };
-        setupSaveModalListeners();
-        setupKeyboardShortcuts();
     }
 
     function addTag(label) {
