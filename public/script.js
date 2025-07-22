@@ -19,25 +19,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Firebase configuration from server
     let firebaseConfig = null;
+    let db = null;
+    let auth = null;
+
     try {
         const response = await fetch('/api/firebase-config');
         if (response.ok) {
-            firebaseConfig = await response.json();
+            const config = await response.json();
+            if (config && config.apiKey) {
+                firebaseConfig = config;
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+            } else {
+                console.warn("Firebase config is incomplete. Firebase features will be disabled.");
+            }
         } else {
-            const errorData = await response.json();
-            console.error('Firebase configuration error:', errorData);
-            alert('Firebase設定の取得に失敗しました。管理者にお問い合わせください。');
-            return;
+            console.warn("Failed to load Firebase config. Firebase features will be disabled.");
         }
     } catch (error) {
-        console.error('Failed to fetch Firebase config:', error);
-        alert('Firebase設定の取得に失敗しました。ネットワーク接続を確認してください。');
-        return;
+        console.error('Error during Firebase initialization:', error);
     }
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
 
     // DOM Elements
     const loginButton = document.getElementById('login-button');
@@ -117,12 +119,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupModalListeners(confirmationModal, () => closeModalHelper(confirmationModal));
 
     function showLoginPromptModal() {
+        if (!auth) {
+            showConfirmationModal(
+                '現在、ログイン機能は利用できません。Firebaseの設定を確認してください。',
+                () => {},
+                { confirmText: 'OK', cancelText: '閉じる' }
+            );
+            return;
+        }
         showConfirmationModal('この機能を利用するにはTwitterアカウントでのログインが必要です。', () => {
             signInWithTwitterAuth();
         }, { confirmText: 'Twitterでログイン', cancelText: 'キャンセル' });
     }
 
     async function signInWithTwitterAuth() {
+        if (!auth) {
+            showToast('ログイン機能は現在利用できません。', 'error');
+            return;
+        }
         const provider = new firebase.auth.TwitterAuthProvider();
         try {
             // Twitter認証はポップアップまたはリダイレクトが一般的です。
@@ -283,14 +297,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chordTypes = { 'major': { name: 'メジャー', intervals: [0, 4, 7] }, 'minor': { name: 'マイナー', intervals: [0, 3, 7] }, 'dominant7th': { name: 'ドミナント7th', intervals: [0, 4, 7, 10] }, 'major7th': { name: 'メジャー7th', intervals: [0, 4, 7, 11] }, 'minor7th': { name: 'マイナー7th', intervals: [0, 3, 7, 10] }, 'diminished': { name: 'ディミニッシュ', intervals: [0, 3, 6] }, 'augmented': { name: 'オーギュメント', intervals: [0, 4, 8] }, 'sus4': { name: 'サスフォー', intervals: [0, 5, 7] }, 'majorPentatonic': { name: 'メジャーペンタ', intervals: [0, 2, 4, 7, 9] }, 'minorPentatonic': { name: 'マイナーペンタ', intervals: [0, 3, 5, 7, 10] } };
 
     async function init() {
-        await setupAudioRouting();
-        await initializeFxNodes();
-        createPlaybackBlocks();
-        setupUIComponents();
-        setupEventListeners();
-        initAuth();
-        loadLocalBackup();
-        document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
+        try {
+            await setupAudioRouting();
+            await initializeFxNodes();
+            createPlaybackBlocks();
+            setupUIComponents();
+            setupEventListeners();
+            initAuth();
+            loadLocalBackup();
+            document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            // Even if something fails, try to hide the loading screen
+        } finally {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+        }
     }
 
     async function initializeFxNodes() {
@@ -358,7 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function setupEventListeners() {
-        loginButton.addEventListener('click', signInWithGoogleAuth);
+        loginButton.addEventListener('click', signInWithTwitterAuth);
         logoutButton.addEventListener('click', () => auth.signOut());
         playOnceButton.onclick = () => handlePlay(false);
         playLoopButton.onclick = () => handlePlay(true);
@@ -1230,8 +1254,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeRandomGenerateModal() { closeModalHelper(randomGenerateModal); }
 
     async function createNewPreset(isSavingCurrentState, onSaveCompleteCallback = null) { // isSavingCurrentState is kept for compatibility but is effectively always true now
-        if (!currentUser) {
-            showToast('ログインが必要です。', 'error');
+        if (!currentUser || !db) {
+            showToast('ログイン機能は現在利用できません。', 'error');
             return;
         }
         const name = document.getElementById('preset-name').value.trim();
@@ -1302,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function openNewPresetModal(isSavingCurrentState = false, onSaveCompleteCallback = null) {
-        if (!currentUser) {
+        if (!currentUser || !auth) {
             showLoginPromptModal();
             return;
         }
@@ -1523,9 +1547,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
     function manualSave(onSaveCompleteCallback = null) {
-        // If not logged in, the modal will handle the login prompt.
-        // We always intend to save the current state when this button is pressed.
-        if (!currentUser) {
+        if (!currentUser || !auth) {
             openNewPresetModal(true);
             return;
         }
@@ -1555,7 +1577,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function performSave(isAutoSave, onSaveCompleteCallback = null) {
-        if (!currentUser || !currentlyLoadedPresetDocId) return;
+        if (!currentUser || !db || !currentlyLoadedPresetDocId) return;
 
         const statusTextBeforeSave = currentPresetStatus.textContent;
         updatePresetStatus('保存中...', false);
@@ -1624,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function openSavePresetModal(isForClone = false) {
-        if (!currentUser) {
+        if (!currentUser || !db) {
             showLoginPromptModal();
             return;
         }
@@ -1665,8 +1687,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function saveOrUpdatePresetInFirestore(isUpdateOnly = true) {
-        if (!currentUser) {
-            showToast('ログインが必要です。', 'error');
+        if (!currentUser || !db) {
+            showToast('ログイン機能は現在利用できません。', 'error');
             return;
         }
         const name = document.getElementById('preset-name').value.trim();
@@ -1722,7 +1744,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function overwritePresetInFirestore(presetId, onSaveCompleteCallback = null) {
-        if (!currentUser || !presetId) return;
+        if (!currentUser || !db || !presetId) return;
         const presetUpdateData = {
             ...getCurrentState(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1754,7 +1776,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function openLoadPresetModal() {
-        if (!currentUser) {
+        if (!currentUser || !auth) {
             showLoginPromptModal();
             return;
         }
@@ -1764,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeLoadPresetModal() { closeModalHelper(loadPresetModal); }
 
     async function populatePresetListFromFirestore() {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         const presetList = document.getElementById('preset-list');
         const noResultsMessage = document.getElementById('no-results-message');
         const searchTerm = document.getElementById('search-box').value.toLowerCase();
@@ -1854,7 +1876,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function openEditPresetMetadataModal(presetId) {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
             const doc = await docRef.get();
@@ -1897,7 +1919,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function loadPresetFromFirestore(presetId) {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         stopPresetPreview();
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
@@ -1920,7 +1942,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function deletePresetFromFirestore(presetId, presetName) {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
 
         showConfirmationModal(
             `本当にプリセット「${presetName}」を削除しますか？この操作は取り消せません。`,
@@ -1943,6 +1965,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function initAuth() {
+        if (!auth) {
+            loginButton.style.display = 'none';
+            logoutButton.style.display = 'none';
+            userInfo.style.display = 'none';
+            loadDataButton.disabled = true;
+            newPresetButton.disabled = true;
+            return;
+        }
+
         // Handle redirect result for Safari
         auth.getRedirectResult().then((result) => {
             if (result.user) {
