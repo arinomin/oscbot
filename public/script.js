@@ -1581,7 +1581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const manualSaveButton = document.getElementById('manual-save-button');
         const footerSaveButton = document.getElementById('footer-save-button');
         let statusText = text || '新規シーケンス';
-        const baseName = statusText.replace(/\s\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存中.../, '');
+        const baseName = statusText.replace(/\s\*$/, '').replace(/^[\u2713\s]*/, '').replace(/^保存��.../, '');
 
         if (text === null) { // Explicitly hiding
             presetStatusContainer.style.display = 'none';
@@ -1986,6 +1986,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 hideUserInfo();
             }
         });
+
+        loginButton.onclick = signInWithGoogleAuth;
+        logoutButton.onclick = () => auth.signOut();
     }
 
     function showUserInfo(user) {
@@ -1998,61 +2001,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(existingIcon) existingIcon.remove();
             userName.insertBefore(userIcon, userName.firstChild);
         }
-        loginButton.style.display = 'none';
-        userInfo.style.display = 'flex';
     }
 
     function hideUserInfo() {
-        loginButton.style.display = 'block';
         userInfo.style.display = 'none';
+        loginButton.style.display = 'block';
+        loadDataButton.disabled = true;
+        newPresetButton.disabled = true;
+        footerSaveButton.disabled = true;
+        manualSaveButton.disabled = true;
+        updatePresetStatus(null);
     }
 
-    loginButton.addEventListener('click', () => {
-        signInWithGoogleAuth();
-    });
+    function setActiveButtonInGroup(container, value) {
+        const buttons = container.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.classList.toggle('active', button.dataset.value == value);
+        });
+    }
 
-    logoutButton.addEventListener('click', () => {
-        showConfirmationModal(
-            '本当にログアウトしますか？', 
-            () => auth.signOut(),
-            { isDanger: true }
-        );
-    });
-
-    function generateButtonSelectors(container, items, groupName, displayFn = (val) => val) {
+    function generateButtonSelectors(container, items, groupName, labelMap = (val) => val) {
         container.innerHTML = '';
         items.forEach(item => {
             const button = document.createElement('button');
             button.type = 'button';
             button.dataset.value = item;
-            button.textContent = displayFn(item);
-            button.onclick = (e) => {
-                const isMultiSelect = container.id.startsWith('bulk-') || container.id.startsWith('rg-');
-                if (isMultiSelect && !container.id.includes('waveform')) {
-                    if (e.target.classList.contains('active')) e.target.classList.remove('active');
-                    else {
-                        container.querySelectorAll('button.active').forEach(btn => btn.classList.remove('active'));
-                        e.target.classList.add('active');
-                    }
-                } else {
-                    container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
-                    e.target.classList.add('active');
-                }
-            };
-            container.appendChild(button);
-        });
-    }
-
-    function createSettingsButtonGroup(container, items, stateVarSetter, defaultValue, valueKey = 'value', labelKey = 'label') {
-        container.innerHTML = '';
-        items.forEach(item => {
-            const button = document.createElement('button');
-            const itemValue = typeof item === 'object' ? item[valueKey] : item;
-            button.dataset.value = itemValue;
-            button.textContent = typeof item === 'object' ? item[labelKey] : item;
-            if (itemValue === defaultValue) button.classList.add('active');
+            button.textContent = labelMap(item);
             button.onclick = () => {
-                stateVarSetter(itemValue);
                 container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
             };
@@ -2060,41 +2035,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    function setActiveButtonInGroup(container, value) {
-        container.querySelectorAll('button').forEach(btn => {
-            const btnValue = isNaN(parseFloat(btn.dataset.value)) ? btn.dataset.value : parseFloat(btn.dataset.value);
-            const targetValue = isNaN(parseFloat(value)) ? value : parseFloat(value);
-            btn.classList.toggle('active', btnValue === targetValue);
+    function createSettingsButtonGroup(container, items, action, defaultValue, valueKey = 'value', labelKey = 'label') {
+        container.innerHTML = '';
+        items.forEach(item => {
+            const value = typeof item === 'object' ? item[valueKey] : item;
+            const label = typeof item === 'object' ? item[labelKey] : item;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.value = value;
+            button.textContent = label;
+            if (value == defaultValue) button.classList.add('active');
+            button.onclick = () => {
+                container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                action(value);
+            };
+            container.appendChild(button);
         });
     }
 
     function populateRandomGenerateModalControls() {
-        const stepsOptions = Array.from({ length: 16 }, (_, i) => i + 1);
-        generateButtonSelectors(document.getElementById('rg-root-note-buttons'), displayNotes, 'rg-root', (val) => val.replace('♯', '#'));
-        setActiveButtonInGroup(document.getElementById('rg-root-note-buttons'), 'C');
-        const chordSelect = document.getElementById('rg-chord-type');
-        chordSelect.innerHTML = Object.keys(chordTypes).map(k => `<option value="${k}">${chordTypes[k].name}</option>`).join('');
+        generateButtonSelectors(document.getElementById('rg-root-note-buttons'), displayNotes, 'rg-root-note');
         generateButtonSelectors(document.getElementById('rg-octave-min-buttons'), octaves, 'rg-octave-min');
-        setActiveButtonInGroup(document.getElementById('rg-octave-min-buttons'), 3);
         generateButtonSelectors(document.getElementById('rg-octave-max-buttons'), octaves, 'rg-octave-max');
-        setActiveButtonInGroup(document.getElementById('rg-octave-max-buttons'), 5);
-        generateButtonSelectors(document.getElementById('rg-steps-buttons'), stepsOptions, 'rg-steps');
-        setActiveButtonInGroup(document.getElementById('rg-steps-buttons'), currentSequenceMax);
+        generateButtonSelectors(document.getElementById('rg-steps-buttons'), Array.from({ length: 16 }, (_, i) => i + 1), 'rg-steps');
+        const chordSelect = document.getElementById('rg-chord-type');
+        chordSelect.innerHTML = Object.keys(chordTypes).map(key => `<option value="${key}">${chordTypes[key].name}</option>`).join('');
     }
 
     function adjustBpm(step) {
-        let newValue = (parseInt(bpmInput.value) || 120) + step;
-        bpmInput.value = Math.max(20, Math.min(300, newValue));
+        let currentBpm = parseInt(bpmInput.value);
+        currentBpm = Math.max(20, Math.min(300, currentBpm + step));
+        bpmInput.value = currentBpm;
     }
-
-    // Hide loader and show app when initialization is complete
-    const loadingOverlay = document.getElementById('loading-overlay');
-    const sequencerApp = document.querySelector('.sequencer-app');
-    loadingOverlay.style.opacity = '0';
-    sequencerApp.classList.add('loaded');
-    setTimeout(() => {
-        loadingOverlay.style.display = 'none';
-    }, 500); // Match transition duration
 
     init();
 });
