@@ -16,7 +16,9 @@ app.use((req, res, next) => {
     // Allow styles from self, FontAwesome, and Google Fonts
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
     // Allow frames from Firebase auth and Google accounts (including YouTube)
-    "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://accounts.youtube.com",
+    "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com",
+    // Allow child frames for Google authentication
+    "child-src 'self' https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com",
     // Allow fonts from FontAwesome and Google Fonts
     "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com",
     // Allow connections to self, WebSocket, Firebase, and Google services

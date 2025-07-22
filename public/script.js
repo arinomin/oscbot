@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             alternativeButton.style.display = 'none';
         }
-        
+
         confirmButton.textContent = options.confirmText || 'OK';
         cancelButton.textContent = options.cancelText || 'キャンセル';
         confirmButton.classList.toggle('danger', !!options.isDanger);
@@ -124,10 +124,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function signInWithGoogleAuth() {
         const provider = new firebase.auth.GoogleAuthProvider();
-        
+
         // Safari detection
         const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        
+
         try {
             if (isSafari) {
                 // Use redirect for Safari
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 lfo.connect(lfoGain);
                 lfoGain.connect(slicerGain.gain);
                 dcOffset.connect(slicerGain.gain);
-                
+
                 lfo.start();
                 dcOffset.start();
 
@@ -405,7 +405,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupModalListeners(bulkEditModal, closeBulkEditModal);
         setupModalListeners(randomGenerateModal, closeRandomGenerateModal);
         setupModalListeners(savePresetModal, closeSavePresetModal);
-        setupModalListeners(loadPresetModal, closeLoadPresetModal);
         setupModalListeners(fxEditModal, closeFxEditModal);
         fxModalCompleteButton.onclick = saveFxSlotChanges;
         fxTypeSelect.onchange = handleFxTypeChange;
@@ -552,7 +551,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (const paramKey in paramDefs) {
             slot.params[paramKey] = paramDefs[paramKey].value;
         }
-        
+
         if (effectDefinitions[newType].createNode) {
             slot.node = await effectDefinitions[newType].createNode(audioCtx);
             slot.node.type = newType;
@@ -567,12 +566,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const slot = currentlyEditingFxSlot;
         fxParamsContainer.innerHTML = '';
         if (!slot || slot.effectType === 'none') return;
-    
+
         const paramDefs = effectDefinitions[slot.effectType].params;
-    
+
         if (slot.effectType === 'delay') {
             const currentParams = slot.params;
-            
+
             const createSlider = (paramKey, def) => {
                 const val = currentParams[paramKey] ?? def.value;
                 const wrapper = document.createElement('div');
@@ -590,10 +589,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateSliderFill(slider);
                 return wrapper;
             };
-    
+
             fxParamsContainer.appendChild(createSlider('mix', paramDefs.mix));
             fxParamsContainer.appendChild(createSlider('feedback', paramDefs.feedback));
-    
+
             const switchWrapper = document.createElement('div');
             switchWrapper.className = 'fx-param-control toggle-switch-container';
             switchWrapper.innerHTML = `
@@ -605,12 +604,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             const switchInput = switchWrapper.querySelector('input');
             fxParamsContainer.appendChild(switchWrapper);
-    
+
             const timeSliderContainer = document.createElement('div');
             timeSliderContainer.dataset.syncControl = 'time';
             timeSliderContainer.appendChild(createSlider('time', paramDefs.time));
             fxParamsContainer.appendChild(timeSliderContainer);
-    
+
             const rateButtonsContainer = document.createElement('div');
             rateButtonsContainer.dataset.syncControl = 'bpm';
             const rateDef = paramDefs.rate;
@@ -636,29 +635,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             rateControlWrapper.appendChild(buttonGroup);
             rateButtonsContainer.appendChild(rateControlWrapper);
             fxParamsContainer.appendChild(rateButtonsContainer);
-    
+
             const updateVisibility = () => {
                 const isTimeMode = switchInput.checked;
                 timeSliderContainer.style.display = isTimeMode ? '' : 'none';
                 rateButtonsContainer.style.display = isTimeMode ? 'none' : '';
             };
             switchInput.onchange = updateVisibility;
-    
+
             switchInput.checked = currentParams.syncMode === 'time';
             updateVisibility();
-    
+
         } else { // Original behavior for other effects
             for (const paramKey in paramDefs) {
                 const paramDef = paramDefs[paramKey];
                 const currentValue = slot.params[paramKey] ?? paramDef.value;
-    
+
                 const controlWrapper = document.createElement('div');
                 controlWrapper.className = 'fx-param-control';
-                
+
                 const label = document.createElement('label');
                 label.textContent = paramDef.label;
                 controlWrapper.appendChild(label);
-    
+
                 if (paramDef.type === 'range') {
                     const sliderWrapper = document.createElement('div');
                     sliderWrapper.className = 'slider-wrapper';
@@ -701,14 +700,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function saveFxSlotChanges() {
         const slot = currentlyEditingFxSlot;
         if (!slot) return;
-    
+
         if (slot.effectType === 'delay') {
             const switchInput = fxParamsContainer.querySelector('input[data-param-key="syncMode"]');
             slot.params.syncMode = switchInput.checked ? 'time' : 'bpm';
-    
+
             slot.params.mix = parseFloat(fxParamsContainer.querySelector('input[data-param-key="mix"]').value);
             slot.params.feedback = parseFloat(fxParamsContainer.querySelector('input[data-param-key="feedback"]').value);
-    
+
             if (slot.params.syncMode === 'time') {
                 slot.params.time = parseFloat(fxParamsContainer.querySelector('input[data-param-key="time"]').value);
             } else { // 'bpm'
@@ -730,7 +729,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         }
-    
+
         if (!slot.node || slot.node.type !== slot.effectType) {
             if (effectDefinitions[slot.effectType].createNode) {
                 slot.node = await effectDefinitions[slot.effectType].createNode(audioCtx);
@@ -739,7 +738,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 slot.node = null;
             }
         }
-        
+
         applyFxParams(slot);
         updateAllFxConnections();
         updateFxSlotButton(slot.id);
@@ -757,7 +756,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (slot.effectType === 'delay') {
             slot.node.wetGain.gain.setValueAtTime(params.mix, now);
             slot.node.dryGain.gain.setValueAtTime(1 - params.mix, now);
-            
+
             let delayTimeValue;
             if (params.syncMode === 'bpm') {
                 const bpm = parseFloat(bpmInput.value);
@@ -1034,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
-        
+
         const isCurrentlyPlaying = activePreviewOscillators.length > 0;
 
         stopPresetPreview();
@@ -1073,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const gain = audioCtx.createGain();
                         osc.type = data.waveform;
                         osc.frequency.setValueAtTime(freq, localNextStepTime);
-                        
+
                         const attack = 0.01;
                         const release = Math.min(0.04, stepDurSec * 0.3);
                         gain.gain.setValueAtTime(0, localNextStepTime);
@@ -1082,11 +1081,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             gain.gain.setValueAtTime(data.volume, localNextStepTime + stepDurSec - release);
                         }
                         gain.gain.linearRampToValueAtTime(0, localNextStepTime + stepDurSec);
-                        
+
                         osc.connect(gain).connect(masterGain);
                         osc.start(localNextStepTime);
                         osc.stop(localNextStepTime + stepDurSec + 0.01);
-                        
+
                         const active = { oscillator: osc, gainNode: gain };
                         activePreviewOscillators.push(active);
                         setTimeout(() => {
@@ -1094,11 +1093,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }, (stepDurSec + 0.1) * 1000);
                     }
                 }
-                
+
                 localNextStepTime += stepDurSec;
                 localCurrentStep++;
             }
-            
+
             if (localCurrentStep < maxSteps && activePreviewOscillators.length > 0) {
                 previewTimeoutId = setTimeout(schedule, 25);
             } else {
@@ -1125,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             gain.gain.setValueAtTime(data.volume, startTime + duration - release);
         }
         gain.gain.linearRampToValueAtTime(0, startTime + duration);
-        
+
         osc.connect(gain).connect(masterGain);
 
         osc.start(startTime);
@@ -1550,7 +1549,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentlyLoadedPresetDocId) {
             // A preset is loaded. Show options: Overwrite or Save As.
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
-            
+
             showConfirmationModal(
                 '現在のプリセットの保存方法を選択してください',
                 () => { // onConfirm: Overwrite
@@ -1573,7 +1572,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function performSave(isAutoSave, onSaveCompleteCallback = null) {
         if (!currentUser || !currentlyLoadedPresetDocId) return;
-        
+
         const statusTextBeforeSave = currentPresetStatus.textContent;
         updatePresetStatus('保存中...', false);
 
@@ -1581,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const state = getCurrentState();
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(currentlyLoadedPresetDocId);
             await docRef.update({ ...state, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            
+
             const presetName = (await docRef.get()).data().name;
             updatePresetStatus(presetName, true);
             if (!isAutoSave) {
@@ -1697,7 +1696,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             addTag(tagsInput.value.trim());
             tagsInput.value = '';
         }
-        
+
         const editingId = savePresetModal.dataset.editingId;
         const tagContainer = document.getElementById('tag-display-container');
         const tags = Array.from(tagContainer.querySelectorAll('.tag-badge span:first-child')).map(t => t.textContent);
@@ -1737,7 +1736,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error("Error saving preset: ", error);
         }
     }
-    
+
     async function overwritePresetInFirestore(presetId, onSaveCompleteCallback = null) {
         if (!currentUser || !presetId) return;
         const presetUpdateData = {
@@ -1756,7 +1755,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error("Error overwriting preset: ", error);
             if (error.code === 'not-found') {
-                showToast('エラー: 保存対象のプリ���ットが見つかりませんでした。', 'error');
+                showToast('エラー: 保存対象のプリセットが見つかりませんでした。', 'error');
                 showConfirmationModal(
                     '元のプリセットが削除されているようです。現在の内容を新しいプリセットとして保存しますか？',
                     () => { openNewPresetModal(true); },
@@ -1786,11 +1785,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const noResultsMessage = document.getElementById('no-results-message');
         const searchTerm = document.getElementById('search-box').value.toLowerCase();
         presetList.innerHTML = '<div class="loading-spinner"></div>';
-        
+
         try {
             const snapshot = await db.collection('users').doc(currentUser.uid).collection('presets').orderBy('updatedAt', 'desc').get();
             const presets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
+
             const filteredPresets = presets.filter(p => 
                 p.name.toLowerCase().includes(searchTerm) || 
                 (p.description && p.description.toLowerCase().includes(searchTerm)) ||
@@ -1832,7 +1831,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const previewButton = document.createElement('button');
                     previewButton.className = 'action-button preview';
                     previewButton.innerHTML = '<i class="fa-solid fa-play"></i> 試聴';
-                    
+
                     const editButton = document.createElement('button');
                     editButton.className = 'action-button edit';
                     editButton.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
@@ -1855,7 +1854,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     loadButton.onclick = (e) => { e.stopPropagation(); loadPresetFromFirestore(preset.id); };
                     editButton.onclick = (e) => { e.stopPropagation(); openEditPresetMetadataModal(preset.id); };
                     deleteButton.onclick = (e) => { e.stopPropagation(); deletePresetFromFirestore(preset.id, preset.name); };
-                    
+
                     presetList.appendChild(item);
                 });
                 noResultsMessage.style.display = 'none';
@@ -1885,7 +1884,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const nameInput = document.getElementById('preset-name');
             nameInput.value = preset.name;
             document.getElementById('preset-description').value = preset.description || '';
-            
+
             const tagContainer = document.getElementById('tag-display-container');
             tagContainer.innerHTML = '';
             if (preset.tags) {
@@ -1902,7 +1901,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveButton.onclick = () => saveOrUpdatePresetInFirestore(true);
             saveButton.disabled = nameInput.value.trim() === '';
             savePresetModal.dataset.editingId = presetId;
-            
+
             const existingOverwriteBtn = document.getElementById('overwrite-preset-button');
             if(existingOverwriteBtn) existingOverwriteBtn.remove();
 
@@ -1924,7 +1923,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             const preset = doc.data();
             await applyState(preset);
-            
+
             currentlyLoadedPresetDocId = presetId;
             updatePresetStatus(preset.name, true);
             clearLocalBackup();
@@ -1994,7 +1993,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 currentUser = user;
                 showUserInfo(user);
-                
+
                 // Resume audio context after successful auth (for Safari)
                 if (audioCtx.state === 'suspended') {
                     audioCtx.resume().catch(console.error);
