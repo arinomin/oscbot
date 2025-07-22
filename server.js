@@ -20,7 +20,7 @@ app.use((req, res, next) => {
     // Allow fonts from FontAwesome and Google Fonts
     "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com",
     // Allow connections to self, WebSocket, Firebase, and Google services
-    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://accounts.youtube.com https://overbridgenet.com",
+    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://accounts.youtube.com https://play.google.com https://overbridgenet.com",
     // Allow images from self, data URIs, and Google user content
     "img-src 'self' data: https://*.googleusercontent.com",
     // Allow frames from Google accounts for authentication
