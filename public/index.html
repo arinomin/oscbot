@@ -1,89 +1,520 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="ブラウザで手軽に使えるモバイルシーケンサー。思いついたメロディーをすぐに記録し、作曲や音作りに活用できます。"
+        />
+        <title>MOBILE OSC BOT</title>
+        <link rel="stylesheet" href="dist/style.css" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        />
+        <link rel="manifest" href="manifest.json" />
+        <meta name="theme-color" content="#1abc9c" />
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+            name="apple-mobile-web-app-status-bar-style"
+            content="black-translucent"
+        />
+        <meta name="apple-mobile-web-app-title" content="OSC BOT" />
+        <link rel="icon" href="icons/favicon.png" type="image/png" />
+        <link rel="shortcut icon" href="icons/favicon.png" type="image/png" />
+        <link
+            rel="apple-touch-icon"
+            sizes="152x152"
+            href="icons/icon-152x152.jpg"
+        />
+        <link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href="icons/icon-192x192.jpg"
+        />
+        <link
+            rel="apple-touch-icon"
+            sizes="192x192"
+            href="icons/icon-192x192.jpg"
+        />
+        <link
+            rel="apple-touch-icon"
+            sizes="384x384"
+            href="icons/icon-384x384.jpg"
+        />
+        <link rel="apple-touch-icon" href="icons/icon-192x192.jpg" />
+        <!-- Firebase SDK -->
+        <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    </head>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.0.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.0.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.0.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.0.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.0.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.0.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.0.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.0.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.0.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.0.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+    <body>
+        <div id="loading-overlay">
+            <div class="loader"></div>
+        </div>
+        <div class="sequencer-app">
+            <header class="app-header">
+                <div class="header-main-content">
+                    <h1>MOBILE OSC BOT</h1>
+                    <div id="preset-status-container" style="display: none">
+                        <span id="current-preset-status"></span>
+                        <button
+                            id="manual-save-button"
+                            class="manual-save-button"
+                            disabled
+                        >
+                            保存
+                        </button>
+                    </div>
+                </div>
+                <div class="auth-section">
+                    <div id="user-info" style="display: none">
+                        <span id="user-name"></span>
+                        <button id="logout-button">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                    <button id="login-button">Twitterでログイン</button>
+                </div>
+            </header>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+            <main class="main-content">
+                <div class="playback-grid-area">
+                    <div class="playback-grid" id="playback-grid"></div>
+                </div>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+                <div class="controls-area">
+                    <div class="control-group playback-controls-immediate">
+                        <button id="play-once-button">一周だけ再生</button>
+                        <button id="play-loop-button">繰り返し再生</button>
+                        <button id="stop-button" class="stop-button">
+                            停止
+                        </button>
+                    </div>
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-        }
-      });
-    </script>
-  </body>
+                    <div class="control-group bpm-control-group">
+                        <label for="bpm">BPM</label>
+                        <div class="bpm-input-wrapper">
+                            <button
+                                type="button"
+                                class="bpm-adjust"
+                                data-step="-10"
+                            >
+                                -10
+                            </button>
+                            <button
+                                type="button"
+                                class="bpm-adjust"
+                                data-step="-1"
+                            >
+                                -
+                            </button>
+                            <input
+                                type="number"
+                                id="bpm"
+                                value="120"
+                                min="20"
+                                max="300"
+                            />
+                            <button
+                                type="button"
+                                class="bpm-adjust"
+                                data-step="1"
+                            >
+                                +
+                            </button>
+                            <button
+                                type="button"
+                                class="bpm-adjust"
+                                data-step="10"
+                            >
+                                +10
+                            </button>
+                        </div>
+                    </div>
+                    <div class="control-group effects-control-group">
+                        <label
+                            >エフェクト (タップ: ON/OFF | 長押し: 編集)</label
+                        >
+                        <div
+                            id="fx-slots-container"
+                            class="settings-button-group"
+                        >
+                            <!-- FX buttons will be generated by script -->
+                        </div>
+                    </div>
+                    <div class="control-group button-based-control">
+                        <label>音価</label>
+                        <div
+                            id="note-duration-buttons"
+                            class="settings-button-group"
+                        ></div>
+                    </div>
+                    <div class="control-group button-based-control">
+                        <label>シーケンスMAX (ステップ数)</label>
+                        <div
+                            id="sequence-max-buttons"
+                            class="settings-button-group sequence-max-buttons"
+                        ></div>
+                    </div>
+                </div>
+                <div class="footer-credits">
+                    <p>
+                        Developed by arinomi (<a
+                            href="https://twitter.com/arinomi_loop"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >@arinomi_loop</a
+                        >)
+                    </p>
+                    <p>
+                        <a
+                            href="https://arinomi.replit.app/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >その他のルーパー支援アプリはこちら</a
+                        >
+                    </p>
+                    <p>
+                        <a href="terms.html">利用規約</a> |
+                        <a href="privacy.html">プライバシーポリシー</a> |
+                        <a
+                            href="https://arinomi.replit.app/#contact"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >お問い合わせ</a
+                        >
+                    </p>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div class="footer-toolbar">
+                    <button
+                        id="random-generate-trigger-button"
+                        class="toolbar-button"
+                    >
+                        <i class="fa-solid fa-dice icon-placeholder"></i>
+                        <span>ランダム</span>
+                    </button>
+                    <button id="bulk-edit-button" class="toolbar-button">
+                        <i
+                            class="fa-solid fa-wand-magic-sparkles icon-placeholder"
+                        ></i>
+                        <span>一斉変更</span>
+                    </button>
+                    <button
+                        id="new-preset-button"
+                        class="toolbar-button toolbar-button-center"
+                    >
+                        <i class="fa-solid fa-plus icon-placeholder"></i>
+                    </button>
+                    <button id="footer-save-button" class="toolbar-button">
+                        <i class="fa-solid fa-save icon-placeholder"></i>
+                        <span>保存</span>
+                    </button>
+                    <button id="load-data-button" class="toolbar-button">
+                        <i class="fa-solid fa-folder-open icon-placeholder"></i>
+                        <span>読込</span>
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <div id="edit-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">×</span>
+                <h3 id="modal-title">ステップ編集</h3>
+                <div class="modal-controls">
+                    <div class="button-group-container">
+                        <label>音階:</label>
+                        <div
+                            id="modal-note-buttons"
+                            class="button-selector-group note-buttons"
+                        ></div>
+                    </div>
+                    <div class="button-group-container">
+                        <label>オクターブ (1-9):</label>
+                        <div
+                            id="modal-octave-buttons"
+                            class="button-selector-group octave-buttons"
+                        ></div>
+                    </div>
+                    <div class="button-group-container">
+                        <label>波形:</label>
+                        <div
+                            id="modal-waveform-buttons"
+                            class="button-selector-group waveform-buttons"
+                        ></div>
+                    </div>
+                    <div>
+                        <label for="modal-volume">音量:</label>
+                        <div class="volume-slider-wrapper">
+                            <input
+                                type="range"
+                                id="modal-volume"
+                                min="0"
+                                max="100"
+                                value="50"
+                            />
+                            <span id="modal-volume-display">50%</span>
+                        </div>
+                    </div>
+                    <button id="modal-play-test-button">▶ この音を試聴</button>
+                    <button
+                        id="modal-complete-button"
+                        class="modal-main-action-button"
+                    >
+                        完了
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="fx-edit-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">×</span>
+                <h3 id="fx-modal-title">FX設定</h3>
+                <div class="modal-controls">
+                    <div class="fx-control-group">
+                        <label for="fx-type-select">エフェクトタイプ:</label>
+                        <select id="fx-type-select"></select>
+                    </div>
+                    <div id="fx-params-container">
+                        <!-- FX parameters will be generated here -->
+                    </div>
+                    <button
+                        id="fx-modal-complete-button"
+                        class="modal-main-action-button"
+                    >
+                        完了
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="bulk-edit-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">×</span>
+                <h3>一斉変更</h3>
+                <div class="modal-controls">
+                    <div class="button-group-container">
+                        <label>音階を一括変更:</label>
+                        <div
+                            id="bulk-modal-note-buttons"
+                            class="button-selector-group note-buttons"
+                        ></div>
+                    </div>
+                    <div class="button-group-container">
+                        <label>オクターブを一括変更:</label>
+                        <div
+                            id="bulk-modal-octave-buttons"
+                            class="button-selector-group octave-buttons"
+                        ></div>
+                    </div>
+                    <div class="button-group-container">
+                        <label>波形を一括変更:</label>
+                        <div
+                            id="bulk-modal-waveform-buttons"
+                            class="button-selector-group waveform-buttons"
+                        ></div>
+                    </div>
+                    <div class="volume-control-container">
+                        <label for="bulk-modal-volume">音量を一括変更:</label>
+                        <div class="volume-slider-wrapper">
+                            <input
+                                type="range"
+                                id="bulk-modal-volume"
+                                min="0"
+                                max="100"
+                                value="50"
+                            />
+                            <span id="bulk-modal-volume-display">50%</span>
+                        </div>
+                        <button
+                            type="button"
+                            id="bulk-clear-volume-button"
+                            class="clear-selection-button"
+                        >
+                            音量変更をクリア
+                        </button>
+                    </div>
+                    <button
+                        id="bulk-modal-apply-button"
+                        class="modal-main-action-button"
+                    >
+                        適用して完了
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="random-generate-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">×</span>
+                <h3>ランダムメロディー生成</h3>
+                <div class="modal-controls">
+                    <div class="button-group-container">
+                        <label>ルート音:</label>
+                        <div
+                            id="rg-root-note-buttons"
+                            class="button-selector-group note-buttons"
+                        ></div>
+                    </div>
+                    <div>
+                        <label for="rg-chord-type">コードタイプ:</label>
+                        <select id="rg-chord-type"></select>
+                    </div>
+                    <div class="button-group-container">
+                        <label>使用オクターブ (最小):</label>
+                        <div
+                            id="rg-octave-min-buttons"
+                            class="button-selector-group octave-buttons"
+                        ></div>
+                    </div>
+                    <div class="button-group-container">
+                        <label>使用オクターブ (最大):</label>
+                        <div
+                            id="rg-octave-max-buttons"
+                            class="button-selector-group octave-buttons"
+                        ></div>
+                    </div>
+                    <div class="button-group-container">
+                        <label>適用ステップ数:</label>
+                        <div
+                            id="rg-steps-buttons"
+                            class="button-selector-group sequence-max-buttons"
+                        ></div>
+                    </div>
+                    <button
+                        id="rg-execute-button"
+                        class="modal-main-action-button"
+                    >
+                        生成実行
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="save-preset-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">×</span>
+                <h3>プリセット保存</h3>
+                <div class="modal-controls">
+                    <div class="input-container">
+                        <label for="preset-name"
+                            >プリセット名
+                            <span class="required-star">*</span></label
+                        >
+                        <input
+                            type="text"
+                            id="preset-name"
+                            class="emphasized-input"
+                            placeholder="例: My Awesome Bassline"
+                            required
+                        />
+                    </div>
+                    <div class="input-with-icon">
+                        <label for="preset-description">説明 (任意)</label>
+                        <i class="fa-solid fa-align-left"></i>
+                        <textarea
+                            id="preset-description"
+                            rows="3"
+                            placeholder="例: A funky pattern for the verse"
+                        ></textarea>
+                    </div>
+                    <div class="tag-input-container">
+                        <label for="preset-tags-input">タグ (任意)</label>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-hashtag"></i>
+                            <input
+                                type="text"
+                                id="preset-tags-input"
+                                placeholder="入力してEnter"
+                            />
+                        </div>
+                        <div id="tag-display-container"></div>
+                    </div>
+                    <button
+                        id="save-preset-button"
+                        class="modal-main-action-button"
+                        disabled
+                    >
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="load-preset-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">×</span>
+                <h3>プリセット読込</h3>
+                <div class="preset-list-controls">
+                    <input
+                        type="search"
+                        id="search-box"
+                        placeholder="検索..."
+                    />
+                    <div id="tag-filter-container"></div>
+                </div>
+                <div class="modal-body">
+                    <ul id="preset-list" class="preset-list">
+                        <!-- Presets will be loaded here -->
+                    </ul>
+                    <p id="no-results-message" style="display: none">
+                        該当するプリセットがありません。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast-container"></div>
+
+        <div id="confirmation-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">×</span>
+                <h3>確認</h3>
+                <p id="confirmation-modal-message"></p>
+                <div class="confirmation-buttons">
+                    <button
+                        id="confirmation-modal-alternative-button"
+                        class="modal-secondary-action-button"
+                        style="display: none"
+                    ></button>
+                    <button
+                        id="confirmation-modal-cancel-button"
+                        class="modal-secondary-action-button"
+                    >
+                        キャンセル
+                    </button>
+                    <button
+                        id="confirmation-modal-confirm-button"
+                        class="modal-main-action-button"
+                    >
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script src="dist/script.js"></script>
+        <!-- Google tag (gtag.js) -->
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-KJT58Y6VGV"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+
+            gtag("config", "G-KJT58Y6VGV");
+        </script>
+    </body>
 </html>
