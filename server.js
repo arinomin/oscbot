@@ -9,22 +9,24 @@ app.use((req, res, next) => {
   // CSP: Define allowed sources
   const cspDirectives = [
     "default-src 'self'",
-    // Allow scripts from self, Google, Firebase, and blob URLs
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://infird.com",
-    // Explicitly set script-src-elem for modern browsers
-    "script-src-elem 'self' 'unsafe-inline' blob: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://infird.com",
+    // Allow scripts with unsafe-hashes for Google authentication compatibility
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob: data: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://infird.com",
+    // Explicitly set script-src-elem with same permissions
+    "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' blob: data: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://infird.com",
     // Allow styles from self, FontAwesome, and Google Fonts
-    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://accounts.google.com https://accounts.youtube.com",
     // Allow frames from Firebase auth and Google accounts (including YouTube)
-    "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com",
+    "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com https://content.googleapis.com",
     // Allow child frames for Google authentication
-    "child-src 'self' https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com",
+    "child-src 'self' https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com https://content.googleapis.com",
     // Allow fonts from FontAwesome and Google Fonts
     "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com",
     // Allow connections to self, WebSocket, Firebase, and Google services
-    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://accounts.youtube.com https://play.google.com https://overbridgenet.com",
+    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://play.google.com https://overbridgenet.com",
     // Allow images from self, data URIs, and Google user content
-    "img-src 'self' data: https://*.googleusercontent.com",
+    "img-src 'self' data: https://*.googleusercontent.com https://accounts.google.com",
+    // Allow forms to be submitted to Google
+    "form-action 'self' https://accounts.google.com https://accounts.youtube.com",
     // Allow frames from Google accounts for authentication
     "frame-ancestors 'self' https://accounts.google.com https://accounts.youtube.com"
   ];
