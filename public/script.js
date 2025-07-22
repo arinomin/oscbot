@@ -19,25 +19,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Firebase configuration from server
     let firebaseConfig = null;
+    let db = null;
+    let auth = null;
+
     try {
         const response = await fetch('/api/firebase-config');
         if (response.ok) {
-            firebaseConfig = await response.json();
+            const config = await response.json();
+            if (config && config.apiKey) {
+                firebaseConfig = config;
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+            } else {
+                console.warn("Firebase config is incomplete. Firebase features will be disabled.");
+            }
         } else {
-            const errorData = await response.json();
-            console.error('Firebase configuration error:', errorData);
-            alert('Firebase設定の取得に失敗しました。管理者にお問い合わせください。');
-            return;
+            console.warn("Failed to load Firebase config. Firebase features will be disabled.");
         }
     } catch (error) {
-        console.error('Failed to fetch Firebase config:', error);
-        alert('Firebase設定の取得に失敗しました。ネットワーク接続を確認してください。');
-        return;
+        console.error('Error during Firebase initialization:', error);
     }
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
 
     // DOM Elements
     const loginButton = document.getElementById('login-button');
@@ -123,6 +125,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function signInWithTwitterAuth() {
+        if (!auth) {
+            showToast('ログイン機能は現在利用できません。', 'error');
+            return;
+        }
         const provider = new firebase.auth.TwitterAuthProvider();
         try {
             // Twitter認証はポップアップまたはリダイレクトが一般的です。
@@ -283,14 +289,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chordTypes = { 'major': { name: 'メジャー', intervals: [0, 4, 7] }, 'minor': { name: 'マイナー', intervals: [0, 3, 7] }, 'dominant7th': { name: 'ドミナント7th', intervals: [0, 4, 7, 10] }, 'major7th': { name: 'メジャー7th', intervals: [0, 4, 7, 11] }, 'minor7th': { name: 'マイナー7th', intervals: [0, 3, 7, 10] }, 'diminished': { name: 'ディミニッシュ', intervals: [0, 3, 6] }, 'augmented': { name: 'オーギュメント', intervals: [0, 4, 8] }, 'sus4': { name: 'サスフォー', intervals: [0, 5, 7] }, 'majorPentatonic': { name: 'メジャーペンタ', intervals: [0, 2, 4, 7, 9] }, 'minorPentatonic': { name: 'マイナーペンタ', intervals: [0, 3, 5, 7, 10] } };
 
     async function init() {
-        await setupAudioRouting();
-        await initializeFxNodes();
-        createPlaybackBlocks();
-        setupUIComponents();
-        setupEventListeners();
-        initAuth();
-        loadLocalBackup();
-        document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
+        try {
+            await setupAudioRouting();
+            await initializeFxNodes();
+            createPlaybackBlocks();
+            setupUIComponents();
+            setupEventListeners();
+            initAuth();
+            loadLocalBackup();
+            document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            // Even if something fails, try to hide the loading screen
+        } finally {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+        }
     }
 
     async function initializeFxNodes() {
@@ -1943,6 +1959,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function initAuth() {
+        if (!auth) {
+            loginButton.style.display = 'none';
+            logoutButton.style.display = 'none';
+            userInfo.style.display = 'none';
+            loadDataButton.disabled = true;
+            newPresetButton.disabled = true;
+            return;
+        }
+
         // Handle redirect result for Safari
         auth.getRedirectResult().then((result) => {
             if (result.user) {
