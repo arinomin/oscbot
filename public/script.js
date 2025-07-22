@@ -119,6 +119,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupModalListeners(confirmationModal, () => closeModalHelper(confirmationModal));
 
     function showLoginPromptModal() {
+        if (!auth) {
+            showConfirmationModal(
+                '現在、ログイン機能は利用できません。Firebaseの設定を確認してください。',
+                () => {},
+                { confirmText: 'OK', cancelText: '閉じる' }
+            );
+            return;
+        }
         showConfirmationModal('この機能を利用するにはTwitterアカウントでのログインが必要です。', () => {
             signInWithTwitterAuth();
         }, { confirmText: 'Twitterでログイン', cancelText: 'キャンセル' });
@@ -1246,8 +1254,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeRandomGenerateModal() { closeModalHelper(randomGenerateModal); }
 
     async function createNewPreset(isSavingCurrentState, onSaveCompleteCallback = null) { // isSavingCurrentState is kept for compatibility but is effectively always true now
-        if (!currentUser) {
-            showToast('ログインが必要です。', 'error');
+        if (!currentUser || !db) {
+            showToast('ログイン機能は現在利用できません。', 'error');
             return;
         }
         const name = document.getElementById('preset-name').value.trim();
@@ -1318,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function openNewPresetModal(isSavingCurrentState = false, onSaveCompleteCallback = null) {
-        if (!currentUser) {
+        if (!currentUser || !auth) {
             showLoginPromptModal();
             return;
         }
@@ -1539,9 +1547,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
     function manualSave(onSaveCompleteCallback = null) {
-        // If not logged in, the modal will handle the login prompt.
-        // We always intend to save the current state when this button is pressed.
-        if (!currentUser) {
+        if (!currentUser || !auth) {
             openNewPresetModal(true);
             return;
         }
@@ -1571,7 +1577,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function performSave(isAutoSave, onSaveCompleteCallback = null) {
-        if (!currentUser || !currentlyLoadedPresetDocId) return;
+        if (!currentUser || !db || !currentlyLoadedPresetDocId) return;
 
         const statusTextBeforeSave = currentPresetStatus.textContent;
         updatePresetStatus('保存中...', false);
@@ -1640,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function openSavePresetModal(isForClone = false) {
-        if (!currentUser) {
+        if (!currentUser || !db) {
             showLoginPromptModal();
             return;
         }
@@ -1681,8 +1687,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function saveOrUpdatePresetInFirestore(isUpdateOnly = true) {
-        if (!currentUser) {
-            showToast('ログインが必要です。', 'error');
+        if (!currentUser || !db) {
+            showToast('ログイン機能は現在利用できません。', 'error');
             return;
         }
         const name = document.getElementById('preset-name').value.trim();
@@ -1738,7 +1744,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function overwritePresetInFirestore(presetId, onSaveCompleteCallback = null) {
-        if (!currentUser || !presetId) return;
+        if (!currentUser || !db || !presetId) return;
         const presetUpdateData = {
             ...getCurrentState(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1770,7 +1776,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function openLoadPresetModal() {
-        if (!currentUser) {
+        if (!currentUser || !auth) {
             showLoginPromptModal();
             return;
         }
@@ -1780,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeLoadPresetModal() { closeModalHelper(loadPresetModal); }
 
     async function populatePresetListFromFirestore() {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         const presetList = document.getElementById('preset-list');
         const noResultsMessage = document.getElementById('no-results-message');
         const searchTerm = document.getElementById('search-box').value.toLowerCase();
@@ -1870,7 +1876,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function openEditPresetMetadataModal(presetId) {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
             const doc = await docRef.get();
@@ -1913,7 +1919,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function loadPresetFromFirestore(presetId) {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         stopPresetPreview();
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
@@ -1936,7 +1942,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function deletePresetFromFirestore(presetId, presetName) {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
 
         showConfirmationModal(
             `本当にプリセット「${presetName}」を削除しますか？この操作は取り消せません。`,
@@ -1958,7 +1964,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
     }
 
-    function initAuth() {
+    """    function initAuth() {
         if (!auth) {
             loginButton.style.display = 'none';
             logoutButton.style.display = 'none';
@@ -2013,7 +2019,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 hideUserInfo();
             }
         });
-    }
+    }""
 
     function showUserInfo(user) {
         userInfo.style.display = 'flex';
