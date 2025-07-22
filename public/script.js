@@ -19,27 +19,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Firebase configuration from server
     let firebaseConfig = null;
-    let db = null;
-    let auth = null;
-
     try {
         const response = await fetch('/api/firebase-config');
         if (response.ok) {
-            const config = await response.json();
-            if (config && config.apiKey) {
-                firebaseConfig = config;
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                auth = firebase.auth();
-            } else {
-                console.warn("Firebase config is incomplete. Firebase features will be disabled.");
-            }
+            firebaseConfig = await response.json();
         } else {
-            console.warn("Failed to load Firebase config. Firebase features will be disabled.");
+            const errorData = await response.json();
+            console.error('Firebase configuration error:', errorData);
+            alert('Firebase設定の取得に失敗しました。管理者にお問い合わせください。');
+            return;
         }
     } catch (error) {
-        console.error('Error during Firebase initialization:', error);
+        console.error('Failed to fetch Firebase config:', error);
+        alert('Firebase設定の取得に失敗しました。ネットワーク接続を確認してください。');
+        return;
     }
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
 
     // DOM Elements
     const loginButton = document.getElementById('login-button');
@@ -119,24 +117,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupModalListeners(confirmationModal, () => closeModalHelper(confirmationModal));
 
     function showLoginPromptModal() {
-        if (!auth) {
-            showConfirmationModal(
-                '現在、ログイン機能は利用できません。Firebaseの設定を確認してください。',
-                () => {},
-                { confirmText: 'OK', cancelText: '閉じる' }
-            );
-            return;
-        }
         showConfirmationModal('この機能を利用するにはTwitterアカウントでのログインが必要です。', () => {
             signInWithTwitterAuth();
         }, { confirmText: 'Twitterでログイン', cancelText: 'キャンセル' });
     }
 
     async function signInWithTwitterAuth() {
-        if (!auth) {
-            showToast('ログイン機能は現在利用できません。', 'error');
-            return;
-        }
         const provider = new firebase.auth.TwitterAuthProvider();
         try {
             // Twitter認証はポップアップまたはリダイレクトが一般的です。
@@ -241,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         { value: 2, label: '8分' },
                         { value: 2 / 1.5, label: '付点8分'},
                         { value: 3, label: '8分3連符' },
-                        { value: 4, label: '16分' }
+                        { value: 4, label: '16分' },
                     ]
                 }
             },
@@ -264,7 +250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         { value: 4, label: '16分' },
                         { value: 4 / 1.5, label: '付点16分'},
                         { value: 6, label: '16分3連符' },
-                        { value: 8, label: '32分' }
+                        { value: 8, label: '32分' },
                     ]
                 }
             },
@@ -297,24 +283,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chordTypes = { 'major': { name: 'メジャー', intervals: [0, 4, 7] }, 'minor': { name: 'マイナー', intervals: [0, 3, 7] }, 'dominant7th': { name: 'ドミナント7th', intervals: [0, 4, 7, 10] }, 'major7th': { name: 'メジャー7th', intervals: [0, 4, 7, 11] }, 'minor7th': { name: 'マイナー7th', intervals: [0, 3, 7, 10] }, 'diminished': { name: 'ディミニッシュ', intervals: [0, 3, 6] }, 'augmented': { name: 'オーギュメント', intervals: [0, 4, 8] }, 'sus4': { name: 'サスフォー', intervals: [0, 5, 7] }, 'majorPentatonic': { name: 'メジャーペンタ', intervals: [0, 2, 4, 7, 9] }, 'minorPentatonic': { name: 'マイナーペンタ', intervals: [0, 3, 5, 7, 10] } };
 
     async function init() {
-        try {
-            await setupAudioRouting();
-            await initializeFxNodes();
-            createPlaybackBlocks();
-            setupUIComponents();
-            setupEventListeners();
-            initAuth();
-            loadLocalBackup();
-            document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
-        } catch (error) {
-            console.error("Initialization failed:", error);
-            // Even if something fails, try to hide the loading screen
-        } finally {
-            const loadingOverlay = document.getElementById('loading-overlay');
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'none';
-            }
-        }
+        await setupAudioRouting();
+        await initializeFxNodes();
+        createPlaybackBlocks();
+        setupUIComponents();
+        setupEventListeners();
+        initAuth();
+        loadLocalBackup();
+        document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
     }
 
     async function initializeFxNodes() {
@@ -382,8 +358,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function setupEventListeners() {
-        loginButton.addEventListener('click', signInWithTwitterAuth);
-        logoutButton.addEventListener('click', () => auth.signOut());
         playOnceButton.onclick = () => handlePlay(false);
         playLoopButton.onclick = () => handlePlay(true);
         stopButton.onclick = stopAllSounds;
@@ -1210,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             note: getActiveValue(document.getElementById('modal-note-buttons')),
             octave: parseInt(getActiveValue(document.getElementById('modal-octave-buttons'))),
             waveform: getActiveValue(document.getElementById('modal-waveform-buttons')),
-            volume: parseInt(document.getElementById('modal-volume').value) / 100
+            volume: parseInt(document.getElementById('modal-volume').value) / 100,
         };
         playSoundWithResume(testData, 0.5);
     }
@@ -1234,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const changes = {
             note: getActiveValue(document.getElementById('bulk-modal-note-buttons')),
             octave: parseInt(getActiveValue(document.getElementById('bulk-modal-octave-buttons'))),
-            waveform: getActiveValue(document.getElementById('bulk-modal-waveform-buttons'))
+            waveform: getActiveValue(document.getElementById('bulk-modal-waveform-buttons')),
         };
         if (document.getElementById('bulk-modal-volume').dataset.isSetForBulk === "true") {
             changes.volume = parseInt(document.getElementById('bulk-modal-volume').value) / 100;
@@ -1254,8 +1228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeRandomGenerateModal() { closeModalHelper(randomGenerateModal); }
 
     async function createNewPreset(isSavingCurrentState, onSaveCompleteCallback = null) { // isSavingCurrentState is kept for compatibility but is effectively always true now
-        if (!currentUser || !db) {
-            showToast('ログイン機能は現在利用できません。', 'error');
+        if (!currentUser) {
+            showToast('ログインが必要です。', 'error');
             return;
         }
         const name = document.getElementById('preset-name').value.trim();
@@ -1285,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tags: tags,
             ...getCurrentState(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
 
         try {
@@ -1311,7 +1285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 note: 'A',
                 octave: 4,
                 waveform: 'sawtooth',
-                volume: 0.5
+                volume: 0.5,
             });
             updatePlaybackBlockDisplay(i);
         });
@@ -1326,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function openNewPresetModal(isSavingCurrentState = false, onSaveCompleteCallback = null) {
-        if (!currentUser || !auth) {
+        if (!currentUser) {
             showLoginPromptModal();
             return;
         }
@@ -1547,7 +1521,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
     function manualSave(onSaveCompleteCallback = null) {
-        if (!currentUser || !auth) {
+        // If not logged in, the modal will handle the login prompt.
+        // We always intend to save the current state when this button is pressed.
+        if (!currentUser) {
             openNewPresetModal(true);
             return;
         }
@@ -1577,7 +1553,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function performSave(isAutoSave, onSaveCompleteCallback = null) {
-        if (!currentUser || !db || !currentlyLoadedPresetDocId) return;
+        if (!currentUser || !currentlyLoadedPresetDocId) return;
 
         const statusTextBeforeSave = currentPresetStatus.textContent;
         updatePresetStatus('保存中...', false);
@@ -1646,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function openSavePresetModal(isForClone = false) {
-        if (!currentUser || !db) {
+        if (!currentUser) {
             showLoginPromptModal();
             return;
         }
@@ -1687,8 +1663,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function saveOrUpdatePresetInFirestore(isUpdateOnly = true) {
-        if (!currentUser || !db) {
-            showToast('ログイン機能は現在利用できません。', 'error');
+        if (!currentUser) {
+            showToast('ログインが必要です。', 'error');
             return;
         }
         const name = document.getElementById('preset-name').value.trim();
@@ -1711,7 +1687,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: name,
             description: document.getElementById('preset-description').value.trim(),
             tags: tags,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
 
         try {
@@ -1744,10 +1720,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function overwritePresetInFirestore(presetId, onSaveCompleteCallback = null) {
-        if (!currentUser || !db || !presetId) return;
+        if (!currentUser || !presetId) return;
         const presetUpdateData = {
             ...getCurrentState(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
@@ -1776,7 +1752,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function openLoadPresetModal() {
-        if (!currentUser || !auth) {
+        if (!currentUser) {
             showLoginPromptModal();
             return;
         }
@@ -1786,7 +1762,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeLoadPresetModal() { closeModalHelper(loadPresetModal); }
 
     async function populatePresetListFromFirestore() {
-        if (!currentUser || !db) return;
+        if (!currentUser) return;
         const presetList = document.getElementById('preset-list');
         const noResultsMessage = document.getElementById('no-results-message');
         const searchTerm = document.getElementById('search-box').value.toLowerCase();
@@ -1876,7 +1852,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function openEditPresetMetadataModal(presetId) {
-        if (!currentUser || !db) return;
+        if (!currentUser) return;
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
             const doc = await docRef.get();
@@ -1919,7 +1895,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function loadPresetFromFirestore(presetId) {
-        if (!currentUser || !db) return;
+        if (!currentUser) return;
         stopPresetPreview();
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('presets').doc(presetId);
@@ -1942,7 +1918,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function deletePresetFromFirestore(presetId, presetName) {
-        if (!currentUser || !db) return;
+        if (!currentUser) return;
 
         showConfirmationModal(
             `本当にプリセット「${presetName}」を削除しますか？この操作は取り消せません。`,
@@ -1965,15 +1941,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function initAuth() {
-        if (!auth) {
-            loginButton.style.display = 'none';
-            logoutButton.style.display = 'none';
-            userInfo.style.display = 'none';
-            loadDataButton.disabled = true;
-            newPresetButton.disabled = true;
-            return;
-        }
-
         // Handle redirect result for Safari
         auth.getRedirectResult().then((result) => {
             if (result.user) {
@@ -2031,33 +1998,61 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(existingIcon) existingIcon.remove();
             userName.insertBefore(userIcon, userName.firstChild);
         }
+        loginButton.style.display = 'none';
+        userInfo.style.display = 'flex';
     }
 
     function hideUserInfo() {
-        userInfo.style.display = 'none';
         loginButton.style.display = 'block';
-        loadDataButton.disabled = true;
-        newPresetButton.disabled = true;
-        footerSaveButton.disabled = true;
-        manualSaveButton.disabled = true;
-        updatePresetStatus(null);
+        userInfo.style.display = 'none';
     }
 
-    function setActiveButtonInGroup(container, value) {
-        const buttons = container.querySelectorAll('button');
-        buttons.forEach(button => {
-            button.classList.toggle('active', button.dataset.value == value);
-        });
-    }
+    loginButton.addEventListener('click', () => {
+        signInWithGoogleAuth();
+    });
 
-    function generateButtonSelectors(container, items, groupName, labelMap = (val) => val) {
+    logoutButton.addEventListener('click', () => {
+        showConfirmationModal(
+            '本当にログアウトしますか？', 
+            () => auth.signOut(),
+            { isDanger: true }
+        );
+    });
+
+    function generateButtonSelectors(container, items, groupName, displayFn = (val) => val) {
         container.innerHTML = '';
         items.forEach(item => {
             const button = document.createElement('button');
             button.type = 'button';
             button.dataset.value = item;
-            button.textContent = labelMap(item);
+            button.textContent = displayFn(item);
+            button.onclick = (e) => {
+                const isMultiSelect = container.id.startsWith('bulk-') || container.id.startsWith('rg-');
+                if (isMultiSelect && !container.id.includes('waveform')) {
+                    if (e.target.classList.contains('active')) e.target.classList.remove('active');
+                    else {
+                        container.querySelectorAll('button.active').forEach(btn => btn.classList.remove('active'));
+                        e.target.classList.add('active');
+                    }
+                } else {
+                    container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                }
+            };
+            container.appendChild(button);
+        });
+    }
+
+    function createSettingsButtonGroup(container, items, stateVarSetter, defaultValue, valueKey = 'value', labelKey = 'label') {
+        container.innerHTML = '';
+        items.forEach(item => {
+            const button = document.createElement('button');
+            const itemValue = typeof item === 'object' ? item[valueKey] : item;
+            button.dataset.value = itemValue;
+            button.textContent = typeof item === 'object' ? item[labelKey] : item;
+            if (itemValue === defaultValue) button.classList.add('active');
             button.onclick = () => {
+                stateVarSetter(itemValue);
                 container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
             };
@@ -2065,39 +2060,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    function createSettingsButtonGroup(container, items, action, defaultValue, valueKey = 'value', labelKey = 'label') {
-        container.innerHTML = '';
-        items.forEach(item => {
-            const value = typeof item === 'object' ? item[valueKey] : item;
-            const label = typeof item === 'object' ? item[labelKey] : item;
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.dataset.value = value;
-            button.textContent = label;
-            if (value == defaultValue) button.classList.add('active');
-            button.onclick = () => {
-                container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                action(value);
-            };
-            container.appendChild(button);
+    function setActiveButtonInGroup(container, value) {
+        container.querySelectorAll('button').forEach(btn => {
+            const btnValue = isNaN(parseFloat(btn.dataset.value)) ? btn.dataset.value : parseFloat(btn.dataset.value);
+            const targetValue = isNaN(parseFloat(value)) ? value : parseFloat(value);
+            btn.classList.toggle('active', btnValue === targetValue);
         });
     }
 
     function populateRandomGenerateModalControls() {
-        generateButtonSelectors(document.getElementById('rg-root-note-buttons'), displayNotes, 'rg-root-note');
-        generateButtonSelectors(document.getElementById('rg-octave-min-buttons'), octaves, 'rg-octave-min');
-        generateButtonSelectors(document.getElementById('rg-octave-max-buttons'), octaves, 'rg-octave-max');
-        generateButtonSelectors(document.getElementById('rg-steps-buttons'), Array.from({ length: 16 }, (_, i) => i + 1), 'rg-steps');
+        const stepsOptions = Array.from({ length: 16 }, (_, i) => i + 1);
+        generateButtonSelectors(document.getElementById('rg-root-note-buttons'), displayNotes, 'rg-root', (val) => val.replace('♯', '#'));
+        setActiveButtonInGroup(document.getElementById('rg-root-note-buttons'), 'C');
         const chordSelect = document.getElementById('rg-chord-type');
-        chordSelect.innerHTML = Object.keys(chordTypes).map(key => `<option value="${key}">${chordTypes[key].name}</option>`).join('');
+        chordSelect.innerHTML = Object.keys(chordTypes).map(k => `<option value="${k}">${chordTypes[k].name}</option>`).join('');
+        generateButtonSelectors(document.getElementById('rg-octave-min-buttons'), octaves, 'rg-octave-min');
+        setActiveButtonInGroup(document.getElementById('rg-octave-min-buttons'), 3);
+        generateButtonSelectors(document.getElementById('rg-octave-max-buttons'), octaves, 'rg-octave-max');
+        setActiveButtonInGroup(document.getElementById('rg-octave-max-buttons'), 5);
+        generateButtonSelectors(document.getElementById('rg-steps-buttons'), stepsOptions, 'rg-steps');
+        setActiveButtonInGroup(document.getElementById('rg-steps-buttons'), currentSequenceMax);
     }
 
     function adjustBpm(step) {
-        let currentBpm = parseInt(bpmInput.value);
-        currentBpm = Math.max(20, Math.min(300, currentBpm + step));
-        bpmInput.value = currentBpm;
+        let newValue = (parseInt(bpmInput.value) || 120) + step;
+        bpmInput.value = Math.max(20, Math.min(300, newValue));
     }
+
+    // Hide loader and show app when initialization is complete
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const sequencerApp = document.querySelector('.sequencer-app');
+    loadingOverlay.style.opacity = '0';
+    sequencerApp.classList.add('loaded');
+    setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+    }, 500); // Match transition duration
 
     init();
 });
