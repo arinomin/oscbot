@@ -117,38 +117,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupModalListeners(confirmationModal, () => closeModalHelper(confirmationModal));
 
     function showLoginPromptModal() {
-        showConfirmationModal('この機能を利用するにはGoogleアカウントでのログインが必要です。', () => {
-            signInWithGoogleAuth();
-        }, { confirmText: 'Googleでログイン', cancelText: 'キャンセル' });
+        showConfirmationModal('この機能を利用するにはTwitterアカウントでのログインが必要です。', () => {
+            signInWithTwitterAuth();
+        }, { confirmText: 'Twitterでログイン', cancelText: 'キャンセル' });
     }
 
-    async function signInWithGoogleAuth() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-
-        // Safari detection
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
+    async function signInWithTwitterAuth() {
+        const provider = new firebase.auth.TwitterAuthProvider();
         try {
-            if (isSafari) {
-                // Use redirect for Safari
-                await auth.signInWithRedirect(provider);
-            } else {
-                // Use popup for other browsers
-                await auth.signInWithPopup(provider);
-            }
+            // Twitter認証はポップアップまたはリダイレクトが一般的です。
+            // Safariや他のブラウザでの一貫性を保つため、リダイレクトを推奨します。
+            await auth.signInWithRedirect(provider);
         } catch (error) {
-            console.error('Firebase Auth Error:', error);
-            if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-                // Fallback to redirect if popup fails
-                try {
-                    await auth.signInWithRedirect(provider);
-                } catch (redirectError) {
-                    console.error('Redirect Auth Error:', redirectError);
-                    showToast(`ログインに失敗しました: ${redirectError.message}`, 'error');
-                }
-            } else if (error.code !== 'auth/popup-closed-by-user') {
-                showToast(`ログインに失敗しました: ${error.message}`, 'error');
-            }
+            console.error('Firebase Twitter Auth Error:', error);
+            showToast(`ログインに失敗しました: ${error.message}`, 'error');
         }
     }
 
