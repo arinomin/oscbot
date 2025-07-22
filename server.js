@@ -10,7 +10,7 @@ app.use((req, res, next) => {
   const cspDirectives = [
     "default-src 'self'",
     // Allow scripts from self, Google, Firebase, and blob URLs
-    "script-src 'self' 'unsafe-inline' blob: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://infird.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://infird.com",
     // Allow styles from self and FontAwesome
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
     // Allow frames from Firebase auth and Google accounts
@@ -18,9 +18,11 @@ app.use((req, res, next) => {
     // Allow fonts from FontAwesome
     "font-src 'self' https://cdnjs.cloudflare.com",
     // Allow connections to self, WebSocket, Firebase, and Google Analytics
-    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://overbridgenet.com",
+    "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://accounts.youtube.com https://overbridgenet.com",
     // Allow images from self, data URIs, and Google user content (for profile pictures)
-    "img-src 'self' data: https://*.googleusercontent.com"
+    "img-src 'self' data: https://*.googleusercontent.com",
+    // Allow frames from Google accounts for authentication
+    "frame-ancestors 'self' https://accounts.google.com https://accounts.youtube.com"
   ];
   res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
 
