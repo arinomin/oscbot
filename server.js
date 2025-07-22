@@ -18,13 +18,13 @@ app.use((req, res, next) => {
     // Allow frames from Firebase auth and Google accounts (including YouTube)
     "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com https://content.googleapis.com",
     // Allow child frames for Google authentication
-    "child-src 'self' https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com https://content.googleapis.com",
+    "child-src 'self' https://accounts.google.com https://accounts.youtube.com https://*.googleapis.com https://content.googleapis.com https://*.firebaseapp.com",
     // Allow fonts from FontAwesome and Google Fonts
     "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com",
     // Allow connections to self, WebSocket, Firebase, and Google services
     "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://play.google.com https://overbridgenet.com https://api.twitter.com",
     // Allow images from self, data URIs, and Google user content
-    "img-src 'self' data: https://*.googleusercontent.com https://accounts.google.com",
+    "img-src 'self' data: https://*.googleusercontent.com https://accounts.google.com https://www.googletagmanager.com https://www.google-analytics.com",
     // Allow forms to be submitted to Google
     "form-action 'self' https://accounts.google.com https://accounts.youtube.com",
     // Allow frames from Google accounts for authentication
