@@ -11,15 +11,17 @@ app.use((req, res, next) => {
     "default-src 'self'",
     // Allow scripts from self, Google, Firebase, and blob URLs
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://infird.com",
-    // Allow styles from self and FontAwesome
-    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
-    // Allow frames from Firebase auth and Google accounts
-    "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com",
-    // Allow fonts from FontAwesome
-    "font-src 'self' https://cdnjs.cloudflare.com",
-    // Allow connections to self, WebSocket, Firebase, and Google Analytics
+    // Explicitly set script-src-elem for modern browsers
+    "script-src-elem 'self' 'unsafe-inline' blob: https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://www.googletagmanager.com https://accounts.google.com https://accounts.youtube.com https://infird.com",
+    // Allow styles from self, FontAwesome, and Google Fonts
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+    // Allow frames from Firebase auth and Google accounts (including YouTube)
+    "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://accounts.youtube.com",
+    // Allow fonts from FontAwesome and Google Fonts
+    "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com",
+    // Allow connections to self, WebSocket, Firebase, and Google services
     "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://accounts.youtube.com https://overbridgenet.com",
-    // Allow images from self, data URIs, and Google user content (for profile pictures)
+    // Allow images from self, data URIs, and Google user content
     "img-src 'self' data: https://*.googleusercontent.com",
     // Allow frames from Google accounts for authentication
     "frame-ancestors 'self' https://accounts.google.com https://accounts.youtube.com"
