@@ -436,14 +436,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupKeyboardShortcuts();
         loginButton.onclick = signInWithTwitterAuth;
         logoutButton.onclick = () => {
-            auth.signOut().then(() => {
-                showToast('ログアウトしました。', 'info');
-                currentlyLoadedPresetDocId = null;
-                updatePresetStatus(null); // Hide status
-            }).catch((error) => {
-                showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
-                console.error('Logout Error:', error);
-            });
+            const hasUnsavedChanges = currentPresetStatus.textContent.includes('*');
+            if (hasUnsavedChanges) {
+                showConfirmationModal(
+                    '保存されていない変更があります。\n本当にログアウトしますか？',
+                    () => { 
+                        auth.signOut().then(() => {
+                            showToast('ログアウトしました。', 'info');
+                            currentlyLoadedPresetDocId = null;
+                            updatePresetStatus(null); // Hide status
+                        }).catch((error) => {
+                            showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
+                            console.error('Logout Error:', error);
+                        });
+                    }, 
+                    { confirmText: 'ログアウト', isDanger: true }
+                );
+            } else {
+                auth.signOut().then(() => {
+                    showToast('ログアウトしました。', 'info');
+                    currentlyLoadedPresetDocId = null;
+                    updatePresetStatus(null); // Hide status
+                }).catch((error) => {
+                    showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
+                    console.error('Logout Error:', error);
+                });
+            }
         };
     }
 
