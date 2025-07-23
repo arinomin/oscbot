@@ -401,6 +401,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupModalListeners(bulkEditModal, closeBulkEditModal);
         setupModalListeners(randomGenerateModal, closeRandomGenerateModal);
         setupModalListeners(savePresetModal, closeSavePresetModal);
+        setupModalListeners(loadPresetModal, closeLoadPresetModal);
         setupModalListeners(fxEditModal, closeFxEditModal);
         fxModalCompleteButton.onclick = saveFxSlotChanges;
         fxTypeSelect.onchange = handleFxTypeChange;
