@@ -458,31 +458,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         loginButton.onclick = signInWithTwitterAuth;
         logoutButton.onclick = () => {
             const hasUnsavedChanges = currentPresetStatus.textContent.includes('*');
-            if (hasUnsavedChanges) {
-                showConfirmationModal(
-                    '保存されていない変更があります。\n本当にログアウトしますか？',
-                    () => { // onConfirm: ラップして即時実行を防ぐ
-                        auth.signOut().then(() => {
-                            showToast('ログアウトしました。', 'info');
-                            currentlyLoadedPresetDocId = null;
-                            updatePresetStatus(null); // Hide status
-                        }).catch((error) => {
-                            showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
-                            console.error('Logout Error:', error);
-                        });
-                    },
-                    { confirmText: 'ログアウト', isDanger: true }
-                );
-            } else {
-                auth.signOut().then(() => {
-                    showToast('ログアウトしました。', 'info');
-                    currentlyLoadedPresetDocId = null;
-                    updatePresetStatus(null); // Hide status
-                }).catch((error) => {
-                    showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
-                    console.error('Logout Error:', error);
-                });
-            }
+            const confirmationMessage = hasUnsavedChanges 
+                ? '保存されていない変更があります。\n本当にログアウトしますか？'
+                : '本当にログアウトしますか？';
+            
+            showConfirmationModal(
+                confirmationMessage,
+                () => { // onConfirm: 確認後にログアウト実行
+                    handleSignOut();
+                },
+                { confirmText: 'ログアウト', isDanger: true }
+            );
         };
     }
 
