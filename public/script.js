@@ -91,6 +91,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeModalHelper(confirmationModal);
         };
 
+        // Reset classes before adding new ones
+        confirmButton.className = 'modal-main-action-button';
+        if (options.confirmButtonClass) {
+            confirmButton.classList.add(...options.confirmButtonClass.split(' '));
+        }
+
         cancelButton.onclick = () => {
             if (options.onCancel) {
                 options.onCancel();
@@ -119,7 +125,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showLoginPromptModal() {
         showConfirmationModal('この機能を利用するにはTwitterアカウントでのログインが必要です。', () => {
             signInWithTwitterAuth();
-        }, { confirmText: 'Twitterでログイン', cancelText: 'キャンセル' });
+        }, { 
+            confirmText: '<i class="fa-brands fa-x-twitter"></i> Twitterでログイン', 
+            cancelText: 'キャンセル',
+            confirmButtonClass: 'twitter-login-button'
+        });
     }
 
     async function signInWithTwitterAuth() {

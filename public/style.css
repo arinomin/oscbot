@@ -162,20 +162,7 @@ body {
     margin-left: auto;
 }
 
-.auth-section button {
-  background: var(--accent-gradient);
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.8em;
-  transition: all 0.2s ease;
-}
-.auth-section button:hover {
-  opacity: 0.9;
-  box-shadow: 0 0 10px var(--highlight-color);
-}
+
 #user-info {
   display: flex;
   align-items: center;
@@ -1293,6 +1280,33 @@ input:focus + .toggle-slider {
 input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
+
+.twitter-login-button {
+    background-color: #1DA1F2; /* Twitter Blue */
+    color: white !important;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* アイコンとテキストの間隔 */
+    font-weight: bold;
+    font-size: 0.9em !important;
+    transition: background-color 0.3s;
+    text-decoration: none; /* In case it's a link */
+}
+
+.twitter-login-button:hover {
+    background-color: #0c85d0; /* 少し濃い青 */
+    opacity: 1;
+}
+
+.twitter-login-button .fa-x-twitter {
+    font-size: 1.2em;
+}
+
 
 #login-button {
     background-color: #1DA1F2; /* Twitter Blue */
