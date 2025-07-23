@@ -125,12 +125,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function signInWithTwitterAuth() {
         const provider = new firebase.auth.TwitterAuthProvider();
         try {
-            // Twitter認証はポップアップまたはリダイレクトが一般的です。
-            // Safariや他のブラウザでの一貫性を保つため、リダイレクトを推奨します。
-            await auth.signInWithRedirect(provider);
+            // ポップアップ認証を開始
+            const result = await auth.signInWithPopup(provider);
+            const user = result.user;
+            showToast(`ようこそ、${user.displayName}さん！`, 'success');
+            console.log("Twitterログイン成功！ユーザーUID:", user.uid);
+
         } catch (error) {
-            console.error('Firebase Twitter Auth Error:', error);
-            showToast(`ログインに失敗しました: ${error.message}`, 'error');
+            console.error("Twitterログインエラー:", error);
+            const errorCode = error.code;
+            const errorMessage = error.message;
+
+            if (errorCode === 'auth/popup-closed-by-user') {
+                showToast('認証画面が閉じられました。', 'info');
+            } else if (errorCode === 'auth/cancelled-popup-request') {
+                // Do nothing, as another popup might be open.
+            } else if (errorCode === 'auth/credential-already-in-use') {
+                showToast('このTwitterアカウントは既に使用されています。', 'error');
+            } else {
+                showToast(`ログインエラー: ${errorMessage}`, 'error');
+            }
         }
     }
 
@@ -1952,18 +1966,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function initAuth() {
-        // Handle redirect result for Safari
-        auth.getRedirectResult().then((result) => {
-            if (result.user) {
-                showToast('ログインに成功しました', 'success');
-            }
-        }).catch((error) => {
-            console.error('Redirect result error:', error);
-            if (error.code !== 'auth/popup-closed-by-user') {
-                showToast(`ログインに失敗しました: ${error.message}`, 'error');
-            }
-        });
-
         auth.onAuthStateChanged(user => {
             if (user) {
                 // User is signed in.
