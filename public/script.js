@@ -2021,7 +2021,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     loginButton.addEventListener('click', () => {
-        signInWithGoogleAuth();
+        // signInWithGoogleAuth();
     });
 
     logoutButton.addEventListener('click', () => {

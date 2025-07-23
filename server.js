@@ -24,7 +24,7 @@ app.use((req, res, next) => {
     // Allow connections to self, WebSocket, Firebase, and Google services
     "connect-src 'self' wss: ws: https://*.firebaseio.com https://firestore.googleapis.com https://www.google-analytics.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://accounts.google.com https://accounts.youtube.com https://content.googleapis.com https://play.google.com https://overbridgenet.com https://api.twitter.com",
     // Allow images from self, data URIs, and Google user content
-    "img-src 'self' data: https://*.googleusercontent.com https://accounts.google.com https://www.googletagmanager.com https://www.google-analytics.com",
+    "img-src 'self' data: https://*.googleusercontent.com https://accounts.google.com https://www.googletagmanager.com https://www.google-analytics.com https://pbs.twimg.com",
     // Allow forms to be submitted to Google
     "form-action 'self' https://accounts.google.com https://accounts.youtube.com",
     // Allow frames from Google accounts for authentication
