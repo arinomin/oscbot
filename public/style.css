@@ -1303,7 +1303,7 @@ input:checked + .toggle-slider:before {
     opacity: 1;
 }
 
-.twitter-login-button .fa-x-twitter {
+.twitter-login-button .fa-twitter {
     font-size: 1.2em;
 }
 
