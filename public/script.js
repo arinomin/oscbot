@@ -381,6 +381,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         createFxSlotButtons();
     }
 
+    function handleSignOut() {
+        auth.signOut().then(() => {
+            showToast('ログアウトしました。', 'info');
+            currentlyLoadedPresetDocId = null;
+            updatePresetStatus(null); // Hide status
+        }).catch((error) => {
+            showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
+            console.error('Logout Error:', error);
+        });
+    }
+
     function setupEventListeners() {
         playOnceButton.onclick = () => handlePlay(false);
         playLoopButton.onclick = () => handlePlay(true);
@@ -450,27 +461,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (hasUnsavedChanges) {
                 showConfirmationModal(
                     '保存されていない変更があります。\n本当にログアウトしますか？',
-                    () => { 
-                        auth.signOut().then(() => {
-                            showToast('ログアウトしました。', 'info');
-                            currentlyLoadedPresetDocId = null;
-                            updatePresetStatus(null); // Hide status
-                        }).catch((error) => {
-                            showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
-                            console.error('Logout Error:', error);
-                        });
-                    }, 
+                    handleSignOut,
                     { confirmText: 'ログアウト', isDanger: true }
                 );
             } else {
-                auth.signOut().then(() => {
-                    showToast('ログアウトしました。', 'info');
-                    currentlyLoadedPresetDocId = null;
-                    updatePresetStatus(null); // Hide status
-                }).catch((error) => {
-                    showToast(`ログアウトに失敗しました: ${error.message}`, 'error');
-                    console.error('Logout Error:', error);
-                });
+                handleSignOut();
             }
         };
     }
