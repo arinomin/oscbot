@@ -1293,3 +1293,25 @@ input:focus + .toggle-slider {
 input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
+
+#login-button {
+    background-color: #1DA1F2; /* Twitter Blue */
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px; /* アイコンとテキストの間隔 */
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+#login-button:hover {
+    background-color: #0c85d0; /* 少し濃い青 */
+}
+
+#login-button .fa-x-twitter {
+    font-size: 1.2em;
+}
